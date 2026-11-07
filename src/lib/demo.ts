@@ -1,4 +1,4 @@
-import { createEmptyState } from "./storage";
+import { createEmptyState } from "./validation";
 import { dateInMonth } from "./finance";
 import type { Entry, State } from "./types";
 export function createDemo(month: string): State {

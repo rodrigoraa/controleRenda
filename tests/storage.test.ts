@@ -96,3 +96,29 @@ it("rejeita uma gravação baseada em dados antigos e preserva a alteração da 
   );
   expect(loadState("2026-11").state.settings.openingBalance).toBe(50000);
 });
+it("rejeita referências ambíguas e exclusões duplicadas antes de gravar no banco", () => {
+  const s = createEmptyState("2026-11");
+  s.entries = [
+    {
+      id: "a",
+      description: "Conta",
+      amount: 100,
+      date: "2026-11-01",
+      kind: "expense",
+      method: "account",
+      owner: "me",
+      category: "Contas",
+      repeat: "none",
+    },
+  ];
+  s.overrides["aX2026-11"] = {
+    description: "Outra conta",
+    amount: 200,
+    owner: "me",
+    category: "Contas",
+  };
+  expect(() => parseBackup(JSON.stringify(s))).toThrow();
+  s.overrides = {};
+  s.skipped = ["a:2026-11", "a:2026-11"];
+  expect(() => parseBackup(JSON.stringify(s))).toThrow();
+});

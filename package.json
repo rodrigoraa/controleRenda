@@ -1,33 +1,60 @@
 {
   "name": "controle-renda",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "dev": "concurrently -k -n api,web \"npm:dev:server\" \"npm:dev:web\"",
+    "build": "npm run typecheck && vite build && tsup",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "vitest run",
+    "test": "npm run test:unit && npm run test:server",
     "test:watch": "vitest",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.server.json --pretty false",
+    "dev:web": "vite --host 0.0.0.0",
+    "dev:server": "tsx watch server/index.ts",
+    "start": "node dist-server/index.js",
+    "test:unit": "vitest run --config vite.config.ts",
+    "test:server": "vitest run --config vitest.server.config.ts",
+    "user:create": "node dist-server/manage-users.js create",
+    "user:reset-password": "node dist-server/manage-users.js reset-password",
+    "db:migrate": "tsx server/migrate.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.0",
+    "@fastify/helmet": "^13.0.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/static": "^10.1.10",
+    "dotenv": "^16.6.0",
+    "fastify": "^5.6.0",
     "lucide-react": "^0.468.0",
+    "pg": "^8.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zod": "^3.24.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
-    "@testing-library/jest-dom": "^6.6.3",
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.15.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.2.0",
     "jsdom": "^26.0.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
     "typescript": "~5.7.2",
     "vite": "^6.4.0",
-    "vitest": "^3.2.0"
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "overrides": {
+    "tsup": {
+      "esbuild": "^0.28.2"
+    }
   }
 }

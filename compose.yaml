@@ -1,0 +1,71 @@
+name: controle-renda
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: controle
+      POSTGRES_USER: controle_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Execute sh scripts/configure.sh primeiro}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Execute sh scripts/configure.sh primeiro}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/010-application-role.sh:ro
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U controle_admin -d controle"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  app:
+    build: .
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://controle_app:${APP_DB_PASSWORD}@db:5432/controle
+      APP_ORIGIN: ${APP_ORIGIN:?Configure APP_ORIGIN com seu domínio HTTPS}
+      TRUST_PROXY: "1"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [default, database]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  backups:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGDATABASE: controle
+      PGUSER: controle_admin
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: [/bin/sh, /scripts/backup-loop.sh]
+    volumes:
+      - ./scripts/backup-loop.sh:/scripts/backup-loop.sh:ro
+      - backup_data:/backups
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [database]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: { max-size: 5m, max-file: "3" }
+volumes:
+  postgres_data:
+  backup_data:
+networks:
+  database: { internal: true }

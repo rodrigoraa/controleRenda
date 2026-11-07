@@ -1,4 +1,6 @@
-# Primeira versão
+# Histórico — primeira versão local
+
+Esta decisão foi substituída pela arquitetura com PostgreSQL descrita em [servidor-linux.md](servidor-linux.md).
 
 Aplicativo pessoal em português para receitas mensais (salário, bolsa e sistema vendido), despesas, parcelas, cartão compartilhado com a mãe e previsão acumulada de saldo. Datas e valores são configuráveis; nenhum dado financeiro real é pré-carregado.
 

@@ -46,14 +46,10 @@ import {
   splitPurchase,
   summarize,
 } from "./lib/finance";
-import {
-  loadState,
-  parseBackup,
-  saveStateIfUnchanged,
-  serializeBackup,
-  StaleStateError,
-  STORAGE_KEY,
-} from "./lib/storage";
+import { parseBackup, serializeBackup } from "./lib/validation";
+import { BudgetConflictError, type BudgetPersistence } from "./lib/persistence";
+import { AccountPanel } from "./components/AccountPanel";
+import type { AuthUser } from "./lib/api";
 import { createDemo } from "./lib/demo";
 import type { Entry, Occurrence, State, Transfer } from "./lib/types";
 import { Modal } from "./components/Modal";
@@ -73,9 +69,22 @@ const navigation: { id: Page; label: string; icon: LucideIcon }[] = [
   { id: "card", label: "Cartão compartilhado", icon: CreditCard },
   { id: "recurring", label: "Recorrências", icon: Repeat2 },
 ];
-export default function App({ today = localDate() }: { today?: string }) {
+export default function App({
+  today = localDate(),
+  persistence,
+  account,
+  legacyBudget,
+}: {
+  today?: string;
+  persistence: BudgetPersistence;
+  account?: { user: AuthUser; onLogout: () => Promise<void> };
+  legacyBudget?: State | null;
+}) {
   const currentMonth = monthOf(today);
-  const [loaded] = useState(() => loadState(currentMonth));
+  const [loaded] = useState(persistence.initial);
+  const [saving, setSaving] = useState(false),
+    [connected, setConnected] = useState(true);
+  const savingRef = useRef(false);
   const [snapshot, setSnapshot] = useState(loaded.snapshot);
   const [real, setReal] = useState(loaded.state),
     [demo, setDemo] = useState<State | null>(null),
@@ -109,57 +118,88 @@ export default function App({ today = localDate() }: { today?: string }) {
     return () => clearTimeout(timeout);
   }, [notice]);
   useEffect(() => {
-    const listener = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        const result = loadState(currentMonth);
-        setReal(result.state);
-        setSnapshot(result.snapshot);
-        setLoadError(result.error);
-        setNotice({ text: "Dados atualizados por outra aba." });
+    if (dialog || demo) return;
+    let active = true;
+    const refresh = async () => {
+      if (savingRef.current || document.visibilityState === "hidden") return;
+      try {
+        const latest = await persistence.load();
+        if (!active || savingRef.current) return;
+        setConnected(true);
+        if (latest.snapshot !== snapshot) {
+          setReal(latest.state);
+          setSnapshot(latest.snapshot);
+          setLoadError(latest.error);
+          setMonth((m) =>
+            m < latest.state.settings.initialMonth
+              ? latest.state.settings.initialMonth
+              : m,
+          );
+        }
+      } catch {
+        if (active) setConnected(false);
       }
     };
-    window.addEventListener("storage", listener);
-    return () => window.removeEventListener("storage", listener);
-  }, [currentMonth]);
+    window.addEventListener("focus", refresh);
+    const timer = setInterval(refresh, 30000);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refresh);
+      clearInterval(timer);
+    };
+  }, [persistence, snapshot, dialog, demo]);
   async function commit(
     next: State,
     message = "Alteração salva.",
   ): Promise<boolean> {
-    if (loadError && !demo) {
-      setNotice({
-        text: "Seus dados precisam ser recuperados. Exporte a cópia de recuperação e importe um backup.",
-        error: true,
-      });
+    if (savingRef.current) {
+      setNotice({ text: "Aguarde o salvamento em andamento.", error: true });
       return false;
     }
+    savingRef.current = true;
+    setSaving(true);
     try {
       if (demo) setDemo(next);
       else {
-        const saved = await saveStateIfUnchanged(next, snapshot);
-        setReal(next);
-        setSnapshot(saved);
+        const saved = await persistence.save(next, snapshot);
+        setReal(saved.state);
+        setSnapshot(saved.snapshot);
+        setLoadError(null);
+        setConnected(true);
       }
       setNotice({
         text: demo ? "Alteração feita somente no exemplo." : message,
       });
       return true;
     } catch (error) {
-      if (error instanceof StaleStateError) {
-        const latest = loadState(currentMonth);
-        setReal(latest.state);
-        setSnapshot(latest.snapshot);
-        setLoadError(latest.error);
+      if (error instanceof BudgetConflictError) {
+        setDialog((current) => (current?.type === "confirm" ? null : current));
+        try {
+          const latest = await persistence.load();
+          setReal(latest.state);
+          setSnapshot(latest.snapshot);
+          setConnected(true);
+        } catch {
+          setConnected(false);
+        }
         setNotice({
-          text: "Outra aba atualizou os dados. Sua alteração não foi gravada. Revise e tente salvar novamente.",
+          text: "Outro aparelho ou aba atualizou seu orçamento. Sua alteração não foi gravada. Revise os dados e refaça a ação.",
           error: true,
         });
         return false;
       }
+      setConnected(false);
       setNotice({
-        text: "Não foi possível salvar. Confira o espaço e a permissão de armazenamento do navegador. A alteração não foi aplicada.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível salvar no servidor. A alteração não foi aplicada.",
         error: true,
       });
       return false;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }
   function navigate(next: Page) {
@@ -280,17 +320,27 @@ export default function App({ today = localDate() }: { today?: string }) {
   function exportBackup() {
     if (demo) return;
     try {
-      if (loadError) {
-        download(
-          localStorage.getItem(STORAGE_KEY) ?? "",
-          `controle-renda-recuperacao-${today}.txt`,
-          "text/plain",
-        );
-      } else
-        download(serializeBackup(real), `controle-renda-backup-${today}.json`);
+      download(serializeBackup(real), `controle-renda-backup-${today}.json`);
     } catch {
       setNotice({ text: "Não foi possível exportar os dados.", error: true });
     }
+  }
+  function confirmImport(imported: State, source: string) {
+    setDialog({
+      type: "confirm",
+      title: "Restaurar este backup?",
+      description: `${source} tem ${imported.entries.length} lançamentos, com início em ${monthLabel(imported.settings.initialMonth)}. Ele substituirá seu orçamento no servidor em todos os aparelhos. Exporte o orçamento atual antes de continuar.`,
+      action: async () => {
+        if (await commit(imported, "Dados importados para o servidor.")) {
+          setMonth(
+            currentMonth < imported.settings.initialMonth
+              ? imported.settings.initialMonth
+              : currentMonth,
+          );
+          setDialog(null);
+        }
+      },
+    });
   }
   async function importBackup(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -299,37 +349,12 @@ export default function App({ today = localDate() }: { today?: string }) {
     try {
       if (file.size > 5_000_000)
         throw new Error("O backup deve ter no máximo 5 MB.");
-      const imported = parseBackup(await file.text());
-      setDialog({
-        type: "confirm",
-        title: "Restaurar este backup?",
-        description: `O arquivo tem ${imported.entries.length} lançamentos, com início em ${monthLabel(imported.settings.initialMonth)}. Ele substituirá os dados deste navegador. Exporte seu backup atual antes de continuar.`,
-        action: async () => {
-          try {
-            const saved = await saveStateIfUnchanged(imported, snapshot);
-            setSnapshot(saved);
-            setReal(imported);
-            setLoadError(null);
-            setMonth(
-              currentMonth < imported.settings.initialMonth
-                ? imported.settings.initialMonth
-                : currentMonth,
-            );
-            setDialog(null);
-            setNotice({ text: "Backup restaurado com sucesso." });
-          } catch {
-            setNotice({
-              text: "Não foi possível gravar o backup. Seus dados anteriores foram mantidos.",
-              error: true,
-            });
-          }
-        },
-      });
-    } catch (err) {
+      confirmImport(parseBackup(await file.text()), "O arquivo");
+    } catch (error) {
       setNotice({
         text:
-          err instanceof Error
-            ? err.message
+          error instanceof Error
+            ? error.message
             : "Não foi possível ler o arquivo.",
         error: true,
       });
@@ -551,7 +576,7 @@ export default function App({ today = localDate() }: { today?: string }) {
     },
   };
   return (
-    <div className="app-shell">
+    <div className="app-shell" aria-busy={saving}>
       <a href="#main-content" className="skip-link">
         Ir para o conteúdo
       </a>
@@ -610,7 +635,13 @@ export default function App({ today = localDate() }: { today?: string }) {
           </button>
           <div className="local-status">
             <span className="status-dot" />
-            <span>Seus dados neste navegador</span>
+            <span role="status">
+              {saving
+                ? "Salvando no servidor…"
+                : connected
+                  ? "Seus dados no servidor"
+                  : "Sem conexão com o servidor"}
+            </span>
             <ShieldCheck size={14} />
           </div>
         </div>
@@ -697,24 +728,6 @@ export default function App({ today = localDate() }: { today?: string }) {
               Novo lançamento
             </button>
           </div>
-          {loadError && !demo && (
-            <div className="alert error">
-              <TriangleAlert size={20} />
-              <div>
-                <strong>Seus dados foram preservados.</strong>
-                <p>{loadError}</p>
-                <button className="text-button" onClick={exportBackup}>
-                  Exportar cópia de recuperação
-                </button>
-                <button
-                  className="text-button"
-                  onClick={() => importRef.current?.click()}
-                >
-                  Importar backup
-                </button>
-              </div>
-            </div>
-          )}
           {page !== "settings" && (
             <div className="period-toolbar">
               <div className="month-picker">
@@ -1332,9 +1345,10 @@ export default function App({ today = localDate() }: { today?: string }) {
                 </span>
                 <h2>Seus dados, com você</h2>
                 <p>
-                  Os dados ficam somente neste navegador. Não há sincronização
-                  entre dispositivos. Exporte backups regularmente e antes de
-                  limpar os dados do navegador.
+                  Seus dados ficam no banco do servidor e podem ser acessados em
+                  outros aparelhos com seu login. As alterações são atualizadas
+                  ao voltar à página ou a cada 30 segundos. Exporte uma cópia
+                  sempre que precisar.
                 </p>
                 <div className="backup-actions">
                   <button
@@ -1360,6 +1374,27 @@ export default function App({ today = localDate() }: { today?: string }) {
                   substituir seus dados.
                 </p>
               </section>
+              {legacyBudget && !demo && (
+                <section className="panel settings-panel">
+                  <h2>Trazer meus dados antigos</h2>
+                  <p>
+                    Encontramos um orçamento da versão anterior neste navegador.
+                    Você pode copiá-lo para sua conta. Os dados locais serão
+                    preservados.
+                  </p>
+                  <button
+                    className="button secondary"
+                    onClick={() =>
+                      confirmImport(legacyBudget, "O orçamento deste navegador")
+                    }
+                  >
+                    Importar dados deste navegador
+                  </button>
+                </section>
+              )}
+              {account && (
+                <AccountPanel user={account.user} onLogout={account.onLogout} />
+              )}
               <section className="panel settings-panel example-settings">
                 <span className="settings-icon">
                   <FlaskConical size={24} />

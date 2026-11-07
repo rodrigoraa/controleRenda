@@ -8,3 +8,8 @@ work/
 .DS_Store
 playwright-report/
 test-results/
+
+dist-server/
+backups/
+*.dump
+*.sql.gz

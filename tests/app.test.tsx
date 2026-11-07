@@ -2,10 +2,21 @@ import { it, expect } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../src/App";
-import { loadState } from "../src/lib/storage";
+import type { BudgetPersistence } from "../src/lib/persistence";
+const makePersistence = (): BudgetPersistence => ({
+  initial: loadState("2026-11"),
+  load: async () => loadState("2026-11"),
+  save: async (state, expected) => {
+    await saveStateIfUnchanged(state, expected);
+    return loadState("2026-11");
+  },
+});
+import { loadState, saveStateIfUnchanged } from "../src/lib/storage";
 it("cadastra uma renda mensal, projeta os dois meses e persiste após reabrir", async () => {
   const user = userEvent.setup();
-  const { unmount } = render(<App today="2026-11-06" />);
+  const { unmount } = render(
+    <App today="2026-11-06" persistence={makePersistence()} />,
+  );
   await user.click(screen.getByRole("button", { name: "Novo lançamento" }));
   await user.click(screen.getByRole("button", { name: "Receita" }));
   await user.type(screen.getByLabelText("Descrição"), "Pagamento do sistema");
@@ -27,14 +38,14 @@ it("cadastra uma renda mensal, projeta os dois meses e persiste após reabrir", 
     within(screen.getByRole("table")).getByText("Pagamento do sistema"),
   ).toBeInTheDocument();
   unmount();
-  render(<App today="2026-11-06" />);
+  render(<App today="2026-11-06" persistence={makePersistence()} />);
   expect(
     within(screen.getByRole("table")).getByText("Pagamento do sistema"),
   ).toBeInTheDocument();
 });
 it("atribui compra à mãe e registra o Pix sem quitar a fatura automaticamente", async () => {
   const user = userEvent.setup();
-  render(<App today="2026-11-06" />);
+  render(<App today="2026-11-06" persistence={makePersistence()} />);
   await user.click(screen.getByRole("button", { name: "Novo lançamento" }));
   await user.type(screen.getByLabelText("Descrição"), "Farmácia da mãe");
   await user.type(screen.getByLabelText("Valor (R$)"), "250");
@@ -59,7 +70,7 @@ it("atribui compra à mãe e registra o Pix sem quitar a fatura automaticamente"
 });
 it("mantém a demonstração separada dos dados reais", async () => {
   const user = userEvent.setup();
-  render(<App today="2026-11-06" />);
+  render(<App today="2026-11-06" persistence={makePersistence()} />);
   await user.click(screen.getByRole("button", { name: "Explorar exemplo" }));
   expect(screen.getByText("Modo de exemplo")).toBeInTheDocument();
   expect(screen.getByText("Salário")).toBeInTheDocument();
@@ -69,7 +80,7 @@ it("mantém a demonstração separada dos dados reais", async () => {
 });
 it("libera a recorrência ao trocar uma compra parcelada por receita", async () => {
   const user = userEvent.setup();
-  render(<App today="2026-11-06" />);
+  render(<App today="2026-11-06" persistence={makePersistence()} />);
   await user.click(screen.getByRole("button", { name: "Novo lançamento" }));
   await user.selectOptions(screen.getByLabelText("Forma de pagamento"), "card");
   await user.selectOptions(screen.getByLabelText("Parcelas"), "3");
