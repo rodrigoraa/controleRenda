@@ -153,6 +153,16 @@ export async function createServer(config: Config, pool: pg.Pool) {
     if (!user) throw new HttpError(401, "Sua sessão expirou. Entre novamente.");
     return user;
   }
+  async function requireAccount(request: FastifyRequest) {
+    const user = await requireUser(request);
+    // Tabs share cookies, so the rendered account must match this request's session.
+    if (request.headers["x-controle-account"] !== user.id)
+      throw new HttpError(
+        401,
+        "Sua conta mudou em outra aba. Entre novamente para continuar.",
+      );
+    return user;
+  }
   app.get("/api/health", async (_request, reply) => {
     try {
       await pool.query("SELECT 1");
@@ -185,6 +195,7 @@ export async function createServer(config: Config, pool: pg.Pool) {
     user: publicUser(await requireUser(request)),
   }));
   app.post("/api/auth/logout", async (request, reply) => {
+    await requireAccount(request);
     const token = sessionToken(request);
     if (token) await repository.deleteSession(tokenHash(token));
     reply.clearCookie(sessionName, {
@@ -199,7 +210,7 @@ export async function createServer(config: Config, pool: pg.Pool) {
     "/api/auth/password",
     { config: { rateLimit: { max: 5, timeWindow: "15 minutes" } } },
     async (request, reply) => {
-      const user = await requireUser(request),
+      const user = await requireAccount(request),
         input = passwordSchema.parse(request.body);
       if (!(await verifyPassword(input.currentPassword, user.password_hash)))
         throw new HttpError(400, "A senha atual está incorreta.");
@@ -222,13 +233,13 @@ export async function createServer(config: Config, pool: pg.Pool) {
     },
   );
   app.get("/api/budget", async (request, reply) => {
-    const user = await requireUser(request),
+    const user = await requireAccount(request),
       budget = await repository.readBudget(user.id);
     reply.header("ETag", `"${budget.revision}"`);
     return budget;
   });
   app.put("/api/budget", async (request, reply) => {
-    const user = await requireUser(request),
+    const user = await requireAccount(request),
       input = writeSchema.parse(request.body);
     let state;
     try {

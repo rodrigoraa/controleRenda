@@ -79,11 +79,13 @@ docker compose -f compose.yaml -f compose.tunnel.yaml up -d --build
 
 Recarregue a página no celular após a atualização.
 
+A revisão de lógica também exige recarregar as outras abas abertas: o servidor agora verifica se a conta exibida corresponde à sessão atual antes de ler ou gravar o orçamento. Veja o [relatório da auditoria](auditoria-logica-2026-11-09.md).
+
 O cadastro de pessoas usa uma nova migração de banco, aplicada automaticamente ao iniciar o servidor. Backups anteriores continuam podendo ser importados.
 
 ## Verificação da alteração
 
-- Suíte completa: 125 testes aprovados, incluindo 23 testes com PostgreSQL real.
+- Suíte completa: 160 testes aprovados, incluindo 30 testes com PostgreSQL real.
 - TypeScript e builds da interface e do servidor aprovados.
 - Chromium automatizado: larguras de 320, 360, 390, 430, 768, 844 e 1280 pixels; a largura 844 foi testada em paisagem com 390 pixels de altura.
 - Login verificado em 320, 390 e 1280 pixels.
@@ -94,6 +96,7 @@ O cadastro de pessoas usa uma nova migração de banco, aplicada automaticamente
 - Saldo atual e renda iniciada no próximo mês verificados em 320, 390 e 1280 pixels, incluindo reabertura e comparação dos valores previstos. Formulários também conferidos com 440 pixels de altura.
 - Compras em 10 parcelas verificadas em 320, 390 e 1280 pixels: responsável no cadastro, troca pela lista e pelo lápis, virada do ano, preservação de valores individuais e reabertura após salvar.
 - Filtros combinados, cadastro de pessoas pelo formulário/lista, atribuição das 10 parcelas e exclusão da compra inteira verificados em 320, 390 e 1280 pixels. A exclusão também foi conferida com 440 pixels de altura; nomes de 60 caracteres foram verificados em 320 pixels.
-- Testes de navegador usaram API simulada e dados fictícios; testes do servidor usaram PostgreSQL separado. Não foram usados dados ou credenciais da instalação real.
+- A auditoria de lógica conferiu conflitos entre abas, confirmações, pagamentos/repasses e troca de conta em 320, 390 e 1280 pixels com Fastify e PostgreSQL reais.
+- Testes anteriores de layout usaram API simulada. Todos os cenários usaram dados fictícios e banco separado; não foram usados dados ou credenciais da instalação real.
 
 A simulação de navegador não substitui o teste em aparelho físico; Safari/iOS não foi executado nesta conferência.

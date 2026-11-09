@@ -18,6 +18,7 @@ export async function apiRequest<T>(
   path: string,
   method = "GET",
   body?: unknown,
+  accountId?: string,
 ): Promise<T> {
   let response: Response;
   try {
@@ -25,10 +26,13 @@ export async function apiRequest<T>(
       method,
       credentials: "same-origin",
       cache: "no-store",
+      headers: {
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(accountId ? { "X-Controle-Account": accountId } : {}),
+      },
       ...(body === undefined
         ? {}
         : {
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           }),
       signal: AbortSignal.timeout(20000),
@@ -65,19 +69,24 @@ function decodeBudget(value: { state: State; revision: number }): LoadedBudget {
     error: null,
   };
 }
-export async function fetchBudget(): Promise<LoadedBudget> {
-  return decodeBudget(await apiRequest("/budget"));
+export async function fetchBudget(accountId: string): Promise<LoadedBudget> {
+  return decodeBudget(await apiRequest("/budget", "GET", undefined, accountId));
 }
-export function serverPersistence(initial: LoadedBudget): BudgetPersistence {
+export function serverPersistence(
+  initial: LoadedBudget,
+  accountId: string,
+): BudgetPersistence {
   return {
     initial,
-    load: fetchBudget,
+    load: () => fetchBudget(accountId),
     save: async (state, expected) =>
       decodeBudget(
-        await apiRequest("/budget", "PUT", {
-          state,
-          revision: Number(expected),
-        }),
+        await apiRequest(
+          "/budget",
+          "PUT",
+          { state, revision: Number(expected) },
+          accountId,
+        ),
       ),
   };
 }

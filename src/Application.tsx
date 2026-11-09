@@ -49,7 +49,7 @@ export default function Application() {
     return {
       kind: "ready",
       user,
-      persistence: serverPersistence(initial),
+      persistence: serverPersistence(initial, user.id),
       legacy: hasLegacy ? local.state : null,
     };
   }
@@ -59,7 +59,7 @@ export default function Application() {
       setPhase({ kind: "loading" });
       try {
         const { user } = await apiRequest<{ user: AuthUser }>("/auth/me");
-        const budget = await fetchBudget();
+        const budget = await fetchBudget(user.id);
         if (active) setPhase(ready(user, budget));
       } catch (error) {
         if (!active) return;
@@ -93,19 +93,24 @@ export default function Application() {
       { email, password },
     );
     try {
-      setPhase(ready(user, await fetchBudget()));
+      setPhase(ready(user, await fetchBudget(user.id)));
     } catch (error) {
-      setPhase({
-        kind: "error",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Não foi possível carregar seu orçamento.",
-      });
+      setPhase(
+        error instanceof ApiError && error.status === 401
+          ? { kind: "login" }
+          : {
+              kind: "error",
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Não foi possível carregar seu orçamento.",
+            },
+      );
     }
   }
   async function logout() {
-    await apiRequest("/auth/logout", "POST");
+    if (phase.kind !== "ready") return;
+    await apiRequest("/auth/logout", "POST", undefined, phase.user.id);
     setPhase({ kind: "login" });
   }
   if (phase.kind === "ready")

@@ -91,6 +91,8 @@ Cada conta criada tem seu próprio orçamento. Atribuir uma compra à mãe ident
 
 Também é possível cadastrar outras pessoas no campo de responsável e filtrar lançamentos por pessoa, situação e faixa de valor, com ordenação por maior/menor valor ou data. Na lixeira de uma compra parcelada, escolha excluir só a parcela ou a compra inteira. Veja o [guia de uso no celular](docs/uso-no-celular.md) para os passos e o tratamento dos repasses.
 
+A [auditoria de lógica de 9 de novembro](docs/auditoria-logica-2026-11-09.md) registra os cenários conferidos e as correções para conflitos entre abas, confirmações desatualizadas e troca de conta. Recarregue as abas após atualizar o servidor para usar a identificação de conta exigida pela API.
+
 ## Conta e senha
 
 Troque a senha em **Configurações e dados → Minha conta**. A troca encerra as outras sessões. Sessões também expiram em 14 dias.

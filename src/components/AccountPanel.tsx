@@ -25,10 +25,12 @@ export function AccountPanel({
     }
     setBusy(true);
     try {
-      await apiRequest("/auth/password", "POST", {
-        currentPassword: current,
-        newPassword: next,
-      });
+      await apiRequest(
+        "/auth/password",
+        "POST",
+        { currentPassword: current, newPassword: next },
+        user.id,
+      );
       setOpen(false);
       setCurrent("");
       setNext("");

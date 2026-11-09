@@ -196,3 +196,27 @@ it.each(["prevista", "real"] as const)(
     ).toThrow(/alterado/);
   },
 );
+it.each([
+  ["valor", { amount: 20000 }],
+  ["descrição", { description: "Mercado corrigido em outra aba" }],
+  ["categoria", { category: "Compras" }],
+] as const)(
+  "recusa formulário antigo quando o campo %s mudou em outra aba",
+  (_field, changed) => {
+    const initial = setup(entry());
+    const row = occurrences(initial, "2026-11")[0];
+    const latest = structuredClone(initial);
+    latest.overrides[row.key] = {
+      amount: 10000,
+      description: "Mercado",
+      category: "Alimentação",
+      owner: "me",
+      ...changed,
+    };
+    const before = structuredClone(latest);
+    expect(() =>
+      editOccurrence(latest, row, { ...row, description: "Minha edição" }),
+    ).toThrow(/alterado/);
+    expect(latest).toEqual(before);
+  },
+);

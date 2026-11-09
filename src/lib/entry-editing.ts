@@ -111,7 +111,10 @@ export function editOccurrence(
     !original ||
     current.date !== row.date ||
     current.settledOn !== row.settledOn ||
-    current.owner !== row.owner
+    current.owner !== row.owner ||
+    current.amount !== row.amount ||
+    current.description !== row.description ||
+    current.category !== row.category
   )
     throw new Error(
       "Este lançamento foi alterado ou removido. Feche a edição e abra o item novamente.",

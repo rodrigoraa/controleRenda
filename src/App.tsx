@@ -88,6 +88,13 @@ type Dialog =
   | { type: "person"; entry?: Occurrence }
   | { type: "confirm"; title: string; description: string; action: () => void }
   | null;
+function retainReusableDraft(current: Dialog): Dialog {
+  return current?.type === "entry" ||
+    current?.type === "balance" ||
+    (current?.type === "person" && !current.entry)
+    ? current
+    : null;
+}
 const navigation: { id: Page; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
   { id: "entries", label: "Lançamentos", icon: ArrowDownLeft },
@@ -125,6 +132,9 @@ export default function App({
     [menu, setMenu] = useState(false),
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all");
+  const dialogRef = useRef(dialog);
+  dialogRef.current = dialog;
+  const dataModeRef = useRef(0);
   const [notice, setNotice] = useState<{
     text: string;
     error?: boolean;
@@ -198,25 +208,27 @@ export default function App({
         setLoadError(null);
         setConnected(true);
       }
+      setDialog(retainReusableDraft);
       setNotice({
         text: demo ? "Alteração feita somente no exemplo." : message,
       });
       return true;
     } catch (error) {
       if (error instanceof BudgetConflictError) {
-        setDialog((current) =>
-          current?.type === "confirm" || current?.type === "delete-installments"
-            ? null
-            : current,
-        );
         try {
           const latest = await persistence.load();
           setReal(latest.state);
           setSnapshot(latest.snapshot);
           setConnected(true);
+          setMonth((m) =>
+            m < latest.state.settings.initialMonth
+              ? latest.state.settings.initialMonth
+              : m,
+          );
         } catch {
           setConnected(false);
         }
+        setDialog(retainReusableDraft);
         setNotice({
           text: "Outro aparelho ou aba atualizou seu orçamento. Sua alteração não foi gravada. Revise os dados e refaça a ação.",
           error: true,
@@ -237,6 +249,9 @@ export default function App({
       setSaving(false);
     }
   }
+  function closeSavedDialog(origin: Dialog) {
+    setDialog((current) => (current === origin ? null : current));
+  }
   function navigate(next: Page) {
     setPage(next);
     setFilter("all");
@@ -252,6 +267,7 @@ export default function App({
     settled: boolean,
     settledOn?: string,
   ) {
+    const origin = dialogRef.current;
     try {
       const editing = dialog?.type === "entry" ? dialog.editing : undefined;
       const next = editing
@@ -277,11 +293,12 @@ export default function App({
               : "Lançamento salvo.",
         )
       ) {
+        if (dialogRef.current !== origin) return;
         if (moved) {
           setMonth(monthOf(entry.date));
           if (page === "recurring") navigate("entries");
         }
-        setDialog(null);
+        closeSavedDialog(origin);
       }
     } catch (error) {
       setNotice({
@@ -354,6 +371,7 @@ export default function App({
     });
   }
   async function removeEntry(row: Occurrence, scope: DeleteScope) {
+    const origin = dialogRef.current;
     try {
       const next = deleteOccurrence(state, row, scope);
       if (
@@ -364,7 +382,7 @@ export default function App({
             : "Lançamento excluído.",
         )
       )
-        setDialog(null);
+        closeSavedDialog(origin);
     } catch (error) {
       setNotice({
         text:
@@ -386,9 +404,10 @@ export default function App({
       description:
         "A movimentação será retirada do saldo disponível e continuará na previsão.",
       action: async () => {
+        const origin = dialogRef.current;
         const next = structuredClone(state);
         delete next.settled[row.key];
-        if (await commit(next)) setDialog(null);
+        if (await commit(next)) closeSavedDialog(origin);
       },
     });
   }
@@ -398,6 +417,7 @@ export default function App({
       title: "Encerrar a repetição?",
       description: `Este lançamento continua até ${monthLabel(month)} e deixa de aparecer a partir do mês seguinte.`,
       action: async () => {
+        const origin = dialogRef.current;
         const next = structuredClone(state);
         if (
           Object.keys(next.settled).some(
@@ -420,17 +440,19 @@ export default function App({
           (k) => !k.startsWith(`${row.id}:`) || k.slice(-7) <= month,
         );
         if (await commit(next, "Repetição encerrada para os próximos meses."))
-          setDialog(null);
+          closeSavedDialog(origin);
       },
     });
   }
   async function saveTransfer(value: Transfer) {
+    const origin = dialogRef.current;
     const next = structuredClone(state);
     if (dialog?.type === "payment") next.payments.push(value);
     else if (dialog?.type === "reimbursement") next.reimbursements.push(value);
     else if (dialog?.type === "settle")
       next.settled[dialog.entry.key] = { date: value.date };
-    if (await commit(next, "Movimentação confirmada.")) setDialog(null);
+    if (await commit(next, "Movimentação confirmada."))
+      closeSavedDialog(origin);
   }
   function download(text: string, name: string, type = "application/json") {
     const url = URL.createObjectURL(new Blob([text], { type }));
@@ -449,31 +471,46 @@ export default function App({
     }
   }
   function confirmImport(imported: State, source: string) {
+    const originMode = dataModeRef.current;
     setDialog({
       type: "confirm",
       title: "Restaurar este backup?",
       description: `${source} tem ${imported.entries.length} lançamentos, com início em ${monthLabel(imported.settings.initialMonth)}. Ele substituirá seu orçamento no servidor em todos os aparelhos. Exporte o orçamento atual antes de continuar.`,
       action: async () => {
+        if (dataModeRef.current !== originMode) return;
+        const origin = dialogRef.current;
         if (await commit(imported, "Dados importados para o servidor.")) {
+          if (dialogRef.current !== origin) {
+            setMonth((m) =>
+              m < imported.settings.initialMonth
+                ? imported.settings.initialMonth
+                : m,
+            );
+            return;
+          }
           setMonth(
             currentMonth < imported.settings.initialMonth
               ? imported.settings.initialMonth
               : currentMonth,
           );
-          setDialog(null);
+          closeSavedDialog(origin);
         }
       },
     });
   }
   async function importBackup(e: ChangeEvent<HTMLInputElement>) {
+    const originMode = dataModeRef.current;
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
+    if (!file || demo) return;
     try {
       if (file.size > 5_000_000)
         throw new Error("O backup deve ter no máximo 5 MB.");
-      confirmImport(parseBackup(await file.text()), "O arquivo");
+      const text = await file.text();
+      if (dataModeRef.current !== originMode) return;
+      confirmImport(parseBackup(text), "O arquivo");
     } catch (error) {
+      if (dataModeRef.current !== originMode) return;
       setNotice({
         text:
           error instanceof Error
@@ -508,11 +545,21 @@ export default function App({
     .filter((e) => e.method === "account" && !e.settledOn)
     .slice(0, 3);
   function startDemo() {
+    if (savingRef.current) {
+      setNotice({ text: "Aguarde o salvamento em andamento.", error: true });
+      return;
+    }
+    dataModeRef.current += 1;
     setDemo(createDemo(currentMonth));
     setMonth(currentMonth);
     navigate("overview");
   }
   function endDemo() {
+    if (savingRef.current) {
+      setNotice({ text: "Aguarde o salvamento em andamento.", error: true });
+      return;
+    }
+    dataModeRef.current += 1;
     setDemo(null);
     setDialog(null);
     setMonth(
@@ -1367,6 +1414,7 @@ export default function App({
                               description:
                                 "O valor voltará a ficar pendente e será retirado das movimentações confirmadas.",
                               action: async () => {
+                                const origin = dialogRef.current;
                                 const next = structuredClone(state);
                                 if (t.type === "payment")
                                   next.payments = next.payments.filter(
@@ -1377,7 +1425,8 @@ export default function App({
                                     next.reimbursements.filter(
                                       (p) => p.id !== t.id,
                                     );
-                                if (await commit(next)) setDialog(null);
+                                if (await commit(next))
+                                  closeSavedDialog(origin);
                               },
                             })
                           }
@@ -1595,7 +1644,7 @@ export default function App({
             try {
               const next = withCurrentBalance(state, amount, today);
               if (await commit(next, "Saldo da conta atualizado."))
-                setDialog(null);
+                closeSavedDialog(dialog);
             } catch (error) {
               setNotice({
                 text:
@@ -1616,7 +1665,7 @@ export default function App({
             if (await commit({ ...state, settings }, "Configurações salvas.")) {
               if (month < settings.initialMonth)
                 setMonth(settings.initialMonth);
-              setDialog(null);
+              closeSavedDialog(dialog);
             }
           }}
         />
@@ -1643,7 +1692,7 @@ export default function App({
       {dialog?.type === "person" && (
         <PersonDialog
           onAdd={(name) => addPerson(name, dialog.entry)}
-          onClose={() => setDialog(null)}
+          onClose={() => closeSavedDialog(dialog)}
         />
       )}
       {dialog?.type === "delete-installments" && (
