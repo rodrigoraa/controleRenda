@@ -159,3 +159,49 @@ it("persiste a correção de data recorrente e sua confirmação após reabrir o
   expect(december[1].settledOn).toBe("2026-11-03");
   expect(occurrences(reloaded.state, "2027-01")[0].date).toBe("2027-01-05");
 });
+it("mantém o saldo atual ajustado e a renda iniciada no próximo mês após recarregar do PostgreSQL", async () => {
+  const { withCurrentBalance, summarize, occurrences } = await import(
+    "../../src/lib/finance"
+  );
+  const state = createEmptyState("2026-11");
+  state.entries = [
+    {
+      id: "received",
+      description: "Recebido antes do ajuste",
+      amount: 90000,
+      date: "2026-11-01",
+      kind: "income",
+      method: "account",
+      owner: "me",
+      category: "Outros",
+      repeat: "none",
+    },
+    {
+      id: "next",
+      description: "Salário",
+      amount: 222100,
+      date: "2026-12-05",
+      kind: "income",
+      method: "account",
+      owner: "me",
+      category: "Salário",
+      repeat: "monthly",
+    },
+  ];
+  state.settled["received:2026-11"] = { date: "2026-11-01" };
+  const adjusted = withCurrentBalance(state, 38003, "2026-11-09");
+  await repo.saveBudget(userId, adjusted, 0);
+  const loaded = await new PostgresRepository(pool).readBudget(userId);
+  expect(summarize(loaded.state, "2026-11", "2026-11-09")).toMatchObject({
+    available: 38003,
+    closing: 38003,
+    nextClosing: 260103,
+  });
+  expect(occurrences(loaded.state, "2026-11").map((e) => e.id)).toEqual([
+    "received",
+  ]);
+  expect(occurrences(loaded.state, "2026-12").map((e) => e.id)).toEqual([
+    "next",
+  ]);
+  expect(loaded.state.settled).toEqual(state.settled);
+});

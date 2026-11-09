@@ -3048,3 +3048,49 @@ tbody tr:last-child td {
     font-size: 21px;
   }
 }
+
+.balance-button {
+  position: relative;
+  margin-top: 14px;
+}
+.metric-primary .metric-caption {
+  color: #e1eddf;
+}
+.balance-breakdown {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.balance-breakdown dl {
+  margin: 16px 0;
+}
+.balance-breakdown dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+}
+.balance-breakdown dd {
+  margin: 0;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.balance-total {
+  border-top: 1px solid var(--border, #e3e8df);
+  font-weight: 650;
+}
+.recurrence-start {
+  display: grid;
+  gap: 10px;
+}
+@media (max-width: 600px) {
+  .balance-breakdown {
+    padding: 18px 16px;
+  }
+  .balance-breakdown dl > div {
+    gap: 10px;
+    font-size: 13px;
+  }
+  .balance-button {
+    white-space: normal;
+  }
+}

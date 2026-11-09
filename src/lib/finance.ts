@@ -152,7 +152,19 @@ export function summarize(state: State, month: string, today: string): Summary {
   const sum = (filter: (entry: Occurrence) => boolean) =>
     rows.filter(filter).reduce((s, e) => s + e.amount, 0);
   const bill = invoice(state, month);
+  const monthEvents = events.filter((event) => monthOf(event.date) === month);
+  const inflows = monthEvents
+    .filter((event) => event.amount > 0)
+    .reduce((sum, event) => sum + event.amount, 0);
+  const outflows = monthEvents
+    .filter((event) => event.amount < 0)
+    .reduce((sum, event) => sum - event.amount, 0);
   return {
+    starting: at(addMonths(month, -1)),
+    inflows,
+    outflows,
+    monthlyChange: inflows - outflows,
+    nextMonthlyChange: at(addMonths(month, 1)) - at(month),
     available:
       state.settings.openingBalance +
       events
@@ -171,6 +183,25 @@ export function summarize(state: State, month: string, today: string): Summary {
       ) + bill.outstanding,
     invoice: bill,
   };
+}
+/** Reconcile with the bank without inventing income or counting confirmed movements twice. */
+export function withCurrentBalance(
+  state: State,
+  amount: number,
+  today: string,
+): State {
+  if (!Number.isSafeInteger(amount) || Math.abs(amount) > 100_000_000_000)
+    throw new Error("Informe um saldo válido de até R$ 1 bilhão.");
+  const current = summarize(state, monthOf(today), today).available;
+  const openingBalance = state.settings.openingBalance + amount - current;
+  if (
+    !Number.isSafeInteger(openingBalance) ||
+    Math.abs(openingBalance) > 100_000_000_000
+  )
+    throw new Error(
+      "O ajuste ultrapassa o limite do saldo inicial. Confira as movimentações confirmadas.",
+    );
+  return { ...state, settings: { ...state.settings, openingBalance } };
 }
 export function splitPurchase(entry: Entry, count: number): Entry[] {
   if (

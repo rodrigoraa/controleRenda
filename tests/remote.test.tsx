@@ -31,7 +31,7 @@ it("não grava localmente nem anuncia sucesso se o servidor recusar o salvamento
   expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   expect(
-    within(screen.getByRole("region", { name: "Sobra prevista" })).getByText(
+    within(screen.getByRole("region", { name: "Saldo previsto no fim do mês" })).getByText(
       "R$ 0,00",
     ),
   ).toBeInTheDocument();

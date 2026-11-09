@@ -77,11 +77,13 @@ A aplicação confia em um único salto de proxy e só está exposta na interfac
 
 ## Uso inicial
 
-1. Em **Configurações e dados**, defina o mês e o saldo inicial, o cartão e o vencimento.
-2. Cadastre salário, bolsa e pagamento do sistema como **Receita → Todo mês**.
+1. Em **Configurações e dados**, defina o mês, o cartão e o vencimento. Em **Início → Informar saldo de hoje**, informe o valor da conta.
+2. Cadastre salário, bolsa e pagamento do sistema como **Receita → Todo mês**, conferindo a data do primeiro recebimento.
 3. Cadastre contas e compras. No cartão, a data pertence ao mês da primeira fatura; informe o valor total para parcelar.
 4. Identifique as compras da sua mãe e registre o Pix quando entrar. Registre o pagamento da fatura separadamente.
-5. Consulte a sobra prevista e avance o mês para ver recorrências e parcelas.
+5. Consulte o saldo previsto e avance o mês para ver recorrências e parcelas.
+
+Para usar o saldo que está na conta agora, confirme os movimentos já realizados antes de usar **Informar saldo de hoje**. Para uma renda que começa no próximo mês, crie uma receita com repetição **Todo mês** e toque em **A partir do próximo mês**. O saldo final previsto acumula os meses anteriores; o resultado de cada mês aparece separado. Veja o [guia de uso](docs/uso-no-celular.md).
 
 Os dados da versão antiga podem ser trazidos com **Importar dados deste navegador**, quando existirem no mesmo endereço e navegador, ou com **Importar backup** usando um JSON exportado anteriormente. A importação substitui o orçamento da conta após confirmação; os dados locais antigos são preservados.
 

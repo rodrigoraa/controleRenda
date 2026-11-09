@@ -55,6 +55,11 @@ export type Invoice = {
 };
 export type Summary = {
   available: number;
+  starting: number;
+  inflows: number;
+  outflows: number;
+  monthlyChange: number;
+  nextMonthlyChange: number;
   closing: number;
   nextClosing: number;
   income: number;

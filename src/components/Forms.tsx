@@ -7,6 +7,8 @@ import {
   parseMoney,
   monthOf,
   money,
+  addMonths,
+  monthLabel,
 } from "../lib/finance";
 import { Modal } from "./Modal";
 export function EntryForm({
@@ -269,6 +271,39 @@ export function EntryForm({
             </select>
           </label>
         </div>
+        {!editing && repeat === "monthly" && (
+          <div className="recurrence-start">
+            <p className="field-note">
+              {kind === "income"
+                ? "Primeiro recebimento"
+                : "Primeiro lançamento"}{" "}
+              em{" "}
+              {date
+                ? `${date.slice(8)}/${date.slice(5, 7)}/${date.slice(0, 4)}`
+                : "uma data a definir"}
+              .
+              {date &&
+                ` Depois, uma vez por mês, a partir de ${monthLabel(monthOf(date))}. O valor não entra nos meses anteriores.`}
+            </p>
+            {addMonths(monthOf(today), 1) >= state.settings.initialMonth && (
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => {
+                  setDate(
+                    dateInMonth(
+                      addMonths(monthOf(today), 1),
+                      Number((date || today).slice(8)),
+                    ),
+                  );
+                  setSettled(false);
+                }}
+              >
+                A partir do próximo mês
+              </button>
+            )}
+          </div>
+        )}
         {method === "card" &&
           kind === "expense" &&
           !editing &&
@@ -320,6 +355,75 @@ export function EntryForm({
           <button className="button primary" type="submit">
             Salvar lançamento
           </button>
+        </footer>
+      </form>
+    </Modal>
+  );
+}
+export function BalanceForm({
+  current,
+  onSave,
+  onClose,
+}: {
+  current: number;
+  onSave: (amount: number) => void;
+  onClose: () => void;
+}) {
+  const [balance, setBalance] = useState(moneyInput(current));
+  const [error, setError] = useState("");
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const negative = balance.trim().startsWith("-");
+    const value = parseMoney(balance.trim().replace(/^-/, "").trim());
+    if (value === null) return setError("Informe um saldo válido.");
+    onSave(negative ? -value : value);
+  }
+  return (
+    <Modal
+      title="Saldo da conta hoje"
+      subtitle="Informe o valor que aparece agora no aplicativo do seu banco."
+      onClose={onClose}
+    >
+      <form className="form-content" onSubmit={submit}>
+        <label>
+          Saldo na conta hoje (R$)
+          <input
+            required
+            inputMode="decimal"
+            value={balance}
+            onChange={(event) => setBalance(event.target.value)}
+          />
+        </label>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={balance.trim().startsWith("-")}
+            onChange={(event) => {
+              const unsigned = balance.trim().replace(/^-/, "").trim() || "0";
+              setBalance(event.target.checked ? `-${unsigned}` : unsigned);
+            }}
+          />
+          Saldo negativo
+        </label>
+        <p className="field-note">
+          O ajuste considera as movimentações já confirmadas e corrige o ponto
+          de partida, sem registrar uma nova receita. Você pode informar zero ou
+          um saldo negativo.
+        </p>
+        <p className="field-note">
+          Lançamentos pendentes continuam nas previsões. Se um valor já entrou
+          ou saiu da conta, confirme esse lançamento antes de ajustar o saldo.
+        </p>
+        {error && (
+          <p role="alert" className="form-error">
+            {error}
+          </p>
+        )}
+        <footer className="form-footer">
+          <button type="button" className="button secondary" onClick={onClose}>
+            Cancelar
+          </button>
+          <button className="button primary">Salvar saldo atual</button>
         </footer>
       </form>
     </Modal>

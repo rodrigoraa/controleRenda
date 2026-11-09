@@ -24,7 +24,7 @@ it("cadastra uma renda mensal, projeta os dois meses e persiste após reabrir", 
   await user.selectOptions(screen.getByLabelText("Repetição"), "monthly");
   await user.click(screen.getByRole("button", { name: "Salvar lançamento" }));
   expect(
-    within(screen.getByRole("region", { name: "Sobra prevista" })).getByText(
+    within(screen.getByRole("region", { name: "Saldo previsto no fim do mês" })).getByText(
       "R$ 1.200,00",
     ),
   ).toBeInTheDocument();

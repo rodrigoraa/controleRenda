@@ -45,6 +45,7 @@ import {
   shortDate,
   splitPurchase,
   summarize,
+  withCurrentBalance,
 } from "./lib/finance";
 import { parseBackup, serializeBackup } from "./lib/validation";
 import { BudgetConflictError, type BudgetPersistence } from "./lib/persistence";
@@ -56,11 +57,17 @@ import type { Entry, Occurrence, State, Transfer } from "./lib/types";
 import { Modal } from "./components/Modal";
 import { TransactionsTable } from "./components/TransactionsTable";
 import { MobileNav } from "./components/MobileNav";
-import { EntryForm, SettingsForm, TransferForm } from "./components/Forms";
+import {
+  BalanceForm,
+  EntryForm,
+  SettingsForm,
+  TransferForm,
+} from "./components/Forms";
 type Page = "overview" | "entries" | "card" | "recurring" | "settings";
 type Dialog =
   | { type: "entry"; editing?: Occurrence }
   | { type: "settings" }
+  | { type: "balance" }
   | { type: "payment" }
   | { type: "reimbursement" }
   | { type: "settle"; entry: Occurrence }
@@ -242,7 +249,9 @@ export default function App({
           next,
           moved
             ? `Data atualizada. Lançamento em ${monthLabel(monthOf(entry.date))}.`
-            : "Lançamento salvo.",
+            : !editing && entry.repeat === "monthly"
+              ? `Lançamento mensal salvo a partir de ${monthLabel(monthOf(entry.date))}.`
+              : "Lançamento salvo.",
         )
       ) {
         if (moved) {
@@ -666,8 +675,8 @@ export default function App({
                   <div>
                     <h3>Um começo simples para cuidar do seu dinheiro.</h3>
                     <p>
-                      Defina seu saldo inicial e adicione suas rendas. A gente
-                      faz as contas.
+                      Informe o saldo da conta hoje e adicione suas rendas. A
+                      gente faz as contas.
                     </p>
                   </div>
                   <div className="welcome-actions">
@@ -676,7 +685,7 @@ export default function App({
                     </button>
                     <button
                       className="button primary"
-                      onClick={() => setDialog({ type: "settings" })}
+                      onClick={() => setDialog({ type: "balance" })}
                     >
                       Configurar meu saldo <ArrowRight size={16} />
                     </button>
@@ -685,55 +694,63 @@ export default function App({
               )}
               <div className="metrics-grid">
                 <section
-                  className={`metric metric-primary ${summary.closing < 0 ? "negative-metric" : ""}`}
-                  aria-label="Sobra prevista"
+                  className={`metric metric-primary ${summary.available < 0 ? "negative-metric" : ""}`}
+                  aria-label="Saldo disponível hoje"
                 >
                   <div className="metric-top">
-                    <span>Sobra prevista em {monthName}</span>
+                    <span>Saldo na conta hoje</span>
                     <span className="metric-icon">
                       <Wallet size={18} />
                     </span>
                   </div>
                   <strong className="metric-value">
+                    {money(summary.available)}
+                  </strong>
+                  <p className="metric-caption">
+                    Saldo real, com as movimentações confirmadas.
+                  </p>
+                  <button
+                    className="button secondary balance-button"
+                    onClick={() => setDialog({ type: "balance" })}
+                  >
+                    <Pencil size={15} /> Informar saldo de hoje
+                  </button>
+                </section>
+                <section
+                  className="metric"
+                  aria-label="Saldo previsto no fim do mês"
+                >
+                  <div className="metric-top">
+                    <span>Saldo no fim de {monthName}</span>
+                    <span className="metric-icon light">
+                      <Wallet size={18} />
+                    </span>
+                  </div>
+                  <strong
+                    className={`metric-value ${summary.closing < 0 ? "negative" : ""}`}
+                  >
                     {money(summary.closing)}
                   </strong>
-                  <div className="metric-bottom">
-                    <span className="metric-tag">
-                      {summary.closing >= 0 ? (
-                        <TrendingUp size={13} />
-                      ) : (
-                        <TriangleAlert size={13} />
-                      )}{" "}
-                      {summary.closing >= 0
-                        ? "Previsão positiva"
-                        : "Atenção ao orçamento"}
-                    </span>
-                    <svg
-                      className="sparkline"
-                      viewBox="0 0 110 35"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d={
-                          summary.nextClosing > summary.closing
-                            ? "M1 32L108 2"
-                            : summary.nextClosing < summary.closing
-                              ? "M1 2L108 32"
-                              : "M1 17L108 17"
-                        }
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      />
-                    </svg>
-                  </div>
+                  <p className="metric-caption">
+                    Resultado só de {monthName}:{" "}
+                    <strong>
+                      {summary.monthlyChange >= 0 ? "+" : ""}
+                      {money(summary.monthlyChange)}
+                    </strong>
+                  </p>
+                  <span className="metric-footnote">
+                    O saldo final inclui o dinheiro dos meses anteriores.
+                  </span>
                 </section>
                 <section
                   className="metric"
                   aria-label="Previsão do próximo mês"
                 >
                   <div className="metric-top">
-                    <span>No próximo mês</span>
+                    <span>
+                      Saldo no fim de{" "}
+                      {monthLabel(addMonths(month, 1)).split(" de ")[0]}
+                    </span>
                     <span className="metric-icon light">
                       <ArrowUpRight size={18} />
                     </span>
@@ -744,43 +761,72 @@ export default function App({
                     {money(summary.nextClosing)}
                   </strong>
                   <p className="metric-caption">
-                    Saldo previsto ao fechar{" "}
+                    Resultado só desse mês:{" "}
                     <strong>
-                      {monthLabel(addMonths(month, 1)).split(" de ")[0]}
+                      {summary.nextMonthlyChange >= 0 ? "+" : ""}
+                      {money(summary.nextMonthlyChange)}
                     </strong>
                   </p>
                   <span className="metric-footnote">
-                    Já inclui a sobra de {monthName}
-                  </span>
-                </section>
-                <section className="metric" aria-label="Saldo disponível hoje">
-                  <div className="metric-top">
-                    <span>Disponível hoje</span>
-                    <span className="metric-icon light">
-                      <Wallet size={18} />
-                    </span>
-                  </div>
-                  <strong
-                    className={`metric-value ${summary.available < 0 ? "negative" : ""}`}
-                  >
-                    {money(summary.available)}
-                  </strong>
-                  <p className="metric-caption">
-                    Somente o que já entrou e saiu
-                  </p>
-                  <span className="metric-footnote">
-                    <ShieldCheck size={12} />
-                    Movimentações confirmadas até hoje
+                    Já inclui o saldo final de {monthName}.
                   </span>
                 </section>
               </div>
               <div className="forecast-note">
                 <CircleHelp size={14} />
                 <span>
-                  Previsões consideram os lançamentos cadastrados, incluindo
-                  valores pendentes. Novos gastos mudam o resultado.
+                  O saldo de hoje conta apenas dinheiro confirmado. As previsões
+                  somam as entradas e descontam as saídas cadastradas, inclusive
+                  pendentes. Uma renda mensal começa no mês da primeira data
+                  informada.
                 </span>
               </div>
+              <section
+                className="panel balance-breakdown"
+                aria-label="Composição da previsão"
+              >
+                <div className="panel-heading">
+                  <div>
+                    <h2>Como chegamos ao saldo de {monthName}</h2>
+                    <p>
+                      Entradas incluem receitas e repasses. Saídas incluem
+                      despesas da conta e pagamentos da fatura, confirmados ou
+                      previstos.
+                    </p>
+                  </div>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Saldo trazido dos meses anteriores</dt>
+                    <dd>{money(summary.starting)}</dd>
+                  </div>
+                  <div>
+                    <dt>+ Entradas de {monthName}</dt>
+                    <dd>{money(summary.inflows)}</dd>
+                  </div>
+                  <div>
+                    <dt>− Saídas de {monthName}</dt>
+                    <dd>{money(summary.outflows)}</dd>
+                  </div>
+                  <div className="balance-total">
+                    <dt>= Saldo previsto no fim do mês</dt>
+                    <dd>{money(summary.closing)}</dd>
+                  </div>
+                </dl>
+                <p className="field-note">
+                  Neste mês ainda há {money(summary.pendingIncome)} a receber e{" "}
+                  {money(summary.pendingExpenses)} a pagar. Se algo já
+                  aconteceu, confirme em Lançamentos ou Cartão. Se foi
+                  cadastrado no mês errado, corrija a data ou exclua somente a
+                  ocorrência incorreta.
+                </p>
+                <button
+                  className="text-button"
+                  onClick={() => navigate("entries")}
+                >
+                  Conferir lançamentos <ArrowRight size={15} />
+                </button>
+              </section>
               {bill.unknown > 0 && (
                 <div className="alert compact">
                   <span className="alert-icon">
@@ -814,12 +860,12 @@ export default function App({
                 <section className="panel projection-panel">
                   <div className="panel-heading">
                     <div>
-                      <h2>Olhe para os próximos meses</h2>
-                      <p>Sua sobra prevista, mês a mês.</p>
+                      <h2>Saldo acumulado nos próximos meses</h2>
+                      <p>Cada mês começa com o saldo final do anterior.</p>
                     </div>
                     <span className="chart-legend">
                       <span />
-                      Saldo projetado
+                      Saldo acumulado
                     </span>
                   </div>
                   <ProjectionChart state={state} month={month} today={today} />
@@ -1234,14 +1280,23 @@ export default function App({
                   <Settings2 size={24} />
                 </span>
                 <h2>Meu controle</h2>
-                <p>O ponto de partida para suas previsões.</p>
+                <p>
+                  O ponto de partida para suas previsões. Para usar o valor que
+                  está no banco agora, informe o saldo de hoje.
+                </p>
+                <button
+                  className="button secondary"
+                  onClick={() => setDialog({ type: "balance" })}
+                >
+                  Informar saldo de hoje
+                </button>
                 <dl>
                   <div>
                     <dt>Mês inicial</dt>
                     <dd>{monthLabel(state.settings.initialMonth)}</dd>
                   </div>
                   <div>
-                    <dt>Saldo inicial</dt>
+                    <dt>Saldo antes do mês inicial</dt>
                     <dd>{money(state.settings.openingBalance)}</dd>
                   </div>
                   <div>
@@ -1392,6 +1447,27 @@ export default function App({
           initialMethod={page === "card" ? "card" : "account"}
           onClose={() => setDialog(null)}
           onSave={saveEntry}
+        />
+      )}
+      {dialog?.type === "balance" && (
+        <BalanceForm
+          current={summary.available}
+          onClose={() => setDialog(null)}
+          onSave={async (amount) => {
+            try {
+              const next = withCurrentBalance(state, amount, today);
+              if (await commit(next, "Saldo da conta atualizado."))
+                setDialog(null);
+            } catch (error) {
+              setNotice({
+                text:
+                  error instanceof Error
+                    ? error.message
+                    : "Não foi possível ajustar o saldo.",
+                error: true,
+              });
+            }
+          }}
         />
       )}
       {dialog?.type === "settings" && (
