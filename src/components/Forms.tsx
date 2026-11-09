@@ -14,6 +14,7 @@ export function EntryForm({
   today,
   state,
   editing,
+  initialMethod = "account",
   onSave,
   onClose,
 }: {
@@ -21,12 +22,13 @@ export function EntryForm({
   today: string;
   state: State;
   editing?: Occurrence;
+  initialMethod?: Entry["method"];
   onSave: (entry: Entry, count: number, settled: boolean) => void;
   onClose: () => void;
 }) {
   const [kind, setKind] = useState<Entry["kind"]>(editing?.kind ?? "expense");
   const [method, setMethod] = useState<Entry["method"]>(
-    editing?.method ?? "account",
+    editing?.method ?? initialMethod,
   );
   const [owner, setOwner] = useState<Entry["owner"]>(editing?.owner ?? "me");
   const [description, setDescription] = useState(editing?.description ?? "");
@@ -133,6 +135,9 @@ export function EntryForm({
           <input
             required
             maxLength={120}
+            autoComplete="off"
+            autoCapitalize="sentences"
+            enterKeyHint="next"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={

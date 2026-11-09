@@ -193,3 +193,7 @@ Novos gastos alteram as previsões. Mercado, combustível e outras despesas vari
 As senhas são derivadas com scrypt; tokens de sessão são aleatórios e só seu hash fica no banco. Cookies usam HttpOnly, SameSite e Secure no domínio HTTPS. A API valida origem e dados, limita tentativas de login e isola cada orçamento pelo usuário autenticado. A conta do banco usada pela aplicação não é superusuária.
 
 O registro dos testes executados e dos limites de verificação desta entrega está em [docs/validacao-servidor.md](docs/validacao-servidor.md).
+
+## Uso no celular
+
+Navegação inferior, inclusão rápida, lançamentos em cartões, controles maiores e formulários adaptados à área visível da tela. Veja o [guia e as imagens do celular](docs/uso-no-celular.md).

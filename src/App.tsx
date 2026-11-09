@@ -53,6 +53,8 @@ import type { AuthUser } from "./lib/api";
 import { createDemo } from "./lib/demo";
 import type { Entry, Occurrence, State, Transfer } from "./lib/types";
 import { Modal } from "./components/Modal";
+import { TransactionsTable } from "./components/TransactionsTable";
+import { MobileNav } from "./components/MobileNav";
 import { EntryForm, SettingsForm, TransferForm } from "./components/Forms";
 type Page = "overview" | "entries" | "card" | "recurring" | "settings";
 type Dialog =
@@ -112,6 +114,9 @@ export default function App({
   );
   const bill = summary.invoice;
   const monthName = monthLabel(month).split(" de ")[0];
+  useEffect(() => {
+    if (dialog) setNotice(null);
+  }, [dialog]);
   useEffect(() => {
     if (!notice) return;
     const timeout = setTimeout(() => setNotice(null), 6500);
@@ -207,6 +212,8 @@ export default function App({
     setFilter("all");
     setSearch("");
     setMenu(false);
+    if (window.matchMedia?.("(max-width: 900px)").matches)
+      window.scrollTo({ top: 0, behavior: "instant" });
   }
   async function saveEntry(entry: Entry, count: number, settled: boolean) {
     const next = structuredClone(state);
@@ -398,160 +405,6 @@ export default function App({
     );
     navigate("overview");
   }
-  const Table = ({
-    items,
-    compact = false,
-  }: {
-    items: Occurrence[];
-    compact?: boolean;
-  }) => (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Lançamento</th>
-            <th>{page === "card" ? "Responsável" : "Situação"}</th>
-            <th>Valor</th>
-            <th>
-              <span className="sr-only">Ações</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((row) => (
-            <tr key={row.key}>
-              <td>
-                <div className="entry-name">
-                  <span
-                    className={`entry-icon ${row.kind === "income" ? "entry-income" : row.method === "card" ? "entry-card" : ""}`}
-                  >
-                    {row.kind === "income" ? (
-                      <ArrowDownLeft size={18} />
-                    ) : row.method === "card" ? (
-                      <CreditCard size={17} />
-                    ) : (
-                      <ArrowUpRight size={18} />
-                    )}
-                  </span>
-                  <div>
-                    <strong>{row.description}</strong>
-                    <small>
-                      {row.category}
-                      <span className="dot">·</span>
-                      {shortDate(row.date)}
-                      {row.installment && (
-                        <>
-                          {" "}
-                          · {row.installment.index}/{row.installment.total}
-                        </>
-                      )}
-                      {row.repeat === "monthly" && (
-                        <Repeat2 size={11} aria-label="Todo mês" />
-                      )}
-                    </small>
-                  </div>
-                </div>
-              </td>
-              <td>
-                {row.method === "card" ? (
-                  <select
-                    className={`owner-select ${row.owner}`}
-                    aria-label={`Responsável por ${row.description}`}
-                    value={row.owner}
-                    onChange={(e) =>
-                      assign(row, e.target.value as Entry["owner"])
-                    }
-                  >
-                    <option value="me">Eu</option>
-                    <option value="mother">Minha mãe</option>
-                    <option value="unknown">A identificar</option>
-                  </select>
-                ) : (
-                  <button
-                    className={`status-pill ${row.settledOn ? "settled" : "pending"}`}
-                    onClick={() => togglePaid(row)}
-                    title={
-                      row.settledOn
-                        ? `Confirmado em ${shortDate(row.settledOn)}. Clique para desfazer.`
-                        : "Clique para confirmar a movimentação"
-                    }
-                  >
-                    {row.settledOn ? <Check size={12} /> : <Clock3 size={12} />}
-                    <span>
-                      {row.settledOn
-                        ? row.kind === "income"
-                          ? "Recebido"
-                          : "Pago"
-                        : "Pendente"}
-                    </span>
-                  </button>
-                )}
-              </td>
-              <td
-                className={`amount ${row.kind === "income" ? "positive" : ""}`}
-              >
-                {row.kind === "income" ? "+ " : ""}
-                {money(row.amount)}
-              </td>
-              <td>
-                <div className="row-actions">
-                  <button
-                    className="icon-button"
-                    aria-label={`Editar ${row.description}`}
-                    onClick={() => setDialog({ type: "entry", editing: row })}
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  {!compact && (
-                    <button
-                      className="icon-button"
-                      aria-label={`Excluir ${row.description}`}
-                      onClick={() => deleteRow(row)}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                  {page === "recurring" && (
-                    <button
-                      className="text-button small"
-                      onClick={() => stopRecurring(row)}
-                    >
-                      Encerrar
-                    </button>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {items.length === 0 && (
-        <div className="empty-state">
-          <span className="empty-icon">
-            {page === "card" ? <CreditCard size={26} /> : <Leaf size={26} />}
-          </span>
-          <h3>
-            {search || filter !== "all"
-              ? "Nenhum resultado por aqui"
-              : "Tudo começa com um lançamento"}
-          </h3>
-          <p>
-            {search || filter !== "all"
-              ? "Tente outro termo ou altere o filtro."
-              : "Adicione receitas e despesas para acompanhar seu dinheiro."}
-          </p>
-          {!search && filter === "all" && (
-            <button
-              className="text-button"
-              onClick={() => setDialog({ type: "entry" })}
-            >
-              Adicionar lançamento <ArrowRight size={15} />
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
   const titles: Record<Page, { title: string; subtitle: string }> = {
     overview: {
       title: "Seu dinheiro, com clareza.",
@@ -602,6 +455,7 @@ export default function App({
           {navigation.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
+              aria-label={label}
               className={`nav-button ${page === id ? "active" : ""}`}
               aria-current={page === id ? "page" : undefined}
               onClick={() => navigate(id)}
@@ -664,7 +518,9 @@ export default function App({
               <Menu size={22} />
             </button>
             <span className="breadcrumb">
-              Meu espaço<span>/</span>
+              <span className="breadcrumb-root">
+                Meu espaço<span>/</span>
+              </span>
               <strong>
                 {page === "settings"
                   ? "Configurações"
@@ -696,9 +552,13 @@ export default function App({
             >
               <CircleHelp size={19} />
             </button>
-            <span className="profile-avatar">
+            <button
+              className="profile-avatar"
+              aria-label="Minha conta"
+              onClick={() => navigate("settings")}
+            >
               <UserRound size={18} />
-            </span>
+            </button>
           </div>
         </header>
         {demo && (
@@ -1034,7 +894,19 @@ export default function App({
                       Ver todos <ArrowRight size={15} />
                     </button>
                   </div>
-                  <Table items={recentRows} compact />
+                  <TransactionsTable
+                    items={recentRows}
+                    compact
+                    page={page}
+                    search={search}
+                    filter={filter}
+                    onAssign={assign}
+                    onTogglePaid={togglePaid}
+                    onEdit={(row) => setDialog({ type: "entry", editing: row })}
+                    onDelete={deleteRow}
+                    onStop={stopRecurring}
+                    onCreate={() => setDialog({ type: "entry" })}
+                  />
                 </section>
                 <section className="panel upcoming-panel">
                   <div className="panel-heading">
@@ -1228,7 +1100,18 @@ export default function App({
                     </button>
                   ))}
                 </div>
-                <Table items={filteredRows} />
+                <TransactionsTable
+                  items={filteredRows}
+                  page={page}
+                  search={search}
+                  filter={filter}
+                  onAssign={assign}
+                  onTogglePaid={togglePaid}
+                  onEdit={(row) => setDialog({ type: "entry", editing: row })}
+                  onDelete={deleteRow}
+                  onStop={stopRecurring}
+                  onCreate={() => setDialog({ type: "entry" })}
+                />
               </section>
               {page === "card" && (
                 <section className="panel history-panel">
@@ -1307,6 +1190,20 @@ export default function App({
           )}
           {page === "settings" && (
             <div className="settings-grid">
+              <button
+                className="settings-shortcut"
+                onClick={() => navigate("recurring")}
+                aria-label="Gerenciar recorrências"
+              >
+                <span className="settings-icon">
+                  <Repeat2 size={23} />
+                </span>
+                <span>
+                  <strong>Recorrências</strong>
+                  <small>Suas rendas e contas de todo mês</small>
+                </span>
+                <ArrowRight size={20} />
+              </button>
               <section className="panel settings-panel">
                 <span className="settings-icon">
                   <Settings2 size={24} />
@@ -1427,6 +1324,12 @@ export default function App({
           </footer>
         </main>
       </div>
+      <MobileNav
+        current={page}
+        onNavigate={navigate}
+        onAdd={() => setDialog({ type: "entry" })}
+        menuOpen={menu}
+      />
       <input
         ref={importRef}
         type="file"
@@ -1461,6 +1364,7 @@ export default function App({
           today={today}
           state={state}
           editing={dialog.editing}
+          initialMethod={page === "card" ? "card" : "account"}
           onClose={() => setDialog(null)}
           onSave={saveEntry}
         />

@@ -13,6 +13,7 @@ export function Modal({
   onClose: () => void;
   wide?: boolean;
 }) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const ref = useRef<HTMLDivElement>(null),
     titleId = useId();
   const closeRef = useRef(onClose);
@@ -30,7 +31,7 @@ export function Modal({
       focusable.find((e) => e.tagName === "INPUT") ??
       focusable[0] ??
       ref.current
-    )?.focus();
+    )?.focus({ preventScroll: true });
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeRef.current();
       if (e.key === "Tab") {
@@ -52,16 +53,34 @@ export function Modal({
       }
     };
     document.addEventListener("keydown", handler);
+    const viewport = window.visualViewport;
+    const fitViewport = () => {
+      if (!viewport) return;
+      overlayRef.current?.style.setProperty(
+        "--dialog-height",
+        `${viewport.height}px`,
+      );
+      overlayRef.current?.style.setProperty(
+        "--dialog-top",
+        `${viewport.offsetTop}px`,
+      );
+    };
+    fitViewport();
+    viewport?.addEventListener("resize", fitViewport);
+    viewport?.addEventListener("scroll", fitViewport);
     const before = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handler);
+      viewport?.removeEventListener("resize", fitViewport);
+      viewport?.removeEventListener("scroll", fitViewport);
       document.body.style.overflow = before;
       previous?.focus();
     };
   }, []);
   return (
     <div
+      ref={overlayRef}
       className="modal-overlay"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
