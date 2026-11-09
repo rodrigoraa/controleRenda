@@ -52,7 +52,7 @@ import { BudgetConflictError, type BudgetPersistence } from "./lib/persistence";
 import { AccountPanel } from "./components/AccountPanel";
 import type { AuthUser } from "./lib/api";
 import { createDemo } from "./lib/demo";
-import { editOccurrence } from "./lib/entry-editing";
+import { assignOccurrenceOwner, editOccurrence } from "./lib/entry-editing";
 import type { Entry, Occurrence, State, Transfer } from "./lib/types";
 import { Modal } from "./components/Modal";
 import { TransactionsTable } from "./components/TransactionsTable";
@@ -271,14 +271,23 @@ export default function App({
     }
   }
   function assign(row: Occurrence, owner: Entry["owner"]) {
-    const next = structuredClone(state);
-    next.overrides[row.key] = {
-      description: row.description,
-      amount: row.amount,
-      category: row.category,
-      owner,
-    };
-    commit(next, "Responsável atualizado.");
+    try {
+      const next = assignOccurrenceOwner(state, row, owner);
+      commit(
+        next,
+        row.installment
+          ? "Responsável atualizado em todas as parcelas desta compra."
+          : "Responsável atualizado.",
+      );
+    } catch (error) {
+      setNotice({
+        text:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível alterar o responsável.",
+        error: true,
+      });
+    }
   }
   function deleteRow(row: Occurrence) {
     setDialog({

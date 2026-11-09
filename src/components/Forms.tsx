@@ -105,7 +105,9 @@ export function EntryForm({
       title={editing ? "Editar lançamento" : "Novo lançamento"}
       subtitle={
         editing
-          ? "Altere este lançamento. Outros meses e parcelas mantêm os dados cadastrados."
+          ? editing.installment
+            ? "Data e valor valem só para esta parcela. Mudar o responsável vale para toda a compra."
+            : "Altere este lançamento. Outros meses mantêm os dados cadastrados."
           : "Poucos detalhes. Tudo organizado."
       }
       onClose={onClose}
@@ -212,8 +214,10 @@ export function EntryForm({
         )}
         {editing?.installment && (
           <p className="field-note">
-            <Info size={16} />A mudança vale só para esta parcela. As outras
-            continuam nas datas cadastradas.
+            <Info size={16} />
+            Data e valor mudam só nesta parcela. Ao alterar o responsável, ele
+            será aplicado a todas as parcelas desta compra. Pagamentos e
+            repasses já registrados são mantidos.
           </p>
         )}
         {kind === "expense" && (
@@ -328,6 +332,12 @@ export function EntryForm({
             {editing
               ? "O mês da data escolhida define a fatura desta compra. Pagamentos e repasses já registrados permanecem na fatura original."
               : "O mês da data escolhida é o mês da fatura. As parcelas seguintes entram nos próximos meses."}
+          </p>
+        )}
+        {!editing && method === "card" && count > 1 && (
+          <p className="field-note">
+            O responsável escolhido vale para todas as {count} parcelas desta
+            compra.
           </p>
         )}
         {!editing && method === "account" && (

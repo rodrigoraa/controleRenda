@@ -1,7 +1,55 @@
 import type { Entry, Occurrence, State } from "./types";
 import { monthOf, occurrences } from "./finance";
 import { parseBackup } from "./validation";
-/** Changes only the chosen occurrence, keeping real cash movements and other installments. */
+function applyInstallmentOwner(
+  state: State,
+  group: string,
+  owner: Entry["owner"],
+) {
+  const ids = new Set(
+    state.entries
+      .filter(
+        (entry) =>
+          entry.method === "card" && entry.installment?.group === group,
+      )
+      .map((entry) => entry.id),
+  );
+  state.entries = state.entries.map((entry) =>
+    ids.has(entry.id) ? { ...entry, owner } : entry,
+  );
+  for (const [key, override] of Object.entries(state.overrides)) {
+    if (ids.has(key.slice(0, -8)))
+      state.overrides[key] = { ...override, owner };
+  }
+}
+
+/** A purchase has one owner across its installments; ungrouped entries keep occurrence-level assignment. */
+export function assignOccurrenceOwner(
+  state: State,
+  row: Occurrence,
+  owner: Entry["owner"],
+): State {
+  const current = occurrences(state, row.month).find(
+    (entry) => entry.key === row.key,
+  );
+  if (!current || current.method !== "card")
+    throw new Error(
+      "Este lançamento foi alterado ou removido. Abra o item novamente.",
+    );
+  const next = structuredClone(state);
+  if (current.installment)
+    applyInstallmentOwner(next, current.installment.group, owner);
+  else
+    next.overrides[current.key] = {
+      description: current.description,
+      amount: current.amount,
+      category: current.category,
+      owner,
+    };
+  return parseBackup(JSON.stringify(next));
+}
+
+/** Edits only this occurrence's fields, except ownership changes shared by the purchase's installments. */
 export function editOccurrence(
   state: State,
   row: Occurrence,
@@ -16,7 +64,8 @@ export function editOccurrence(
     !current ||
     !original ||
     current.date !== row.date ||
-    current.settledOn !== row.settledOn
+    current.settledOn !== row.settledOn ||
+    current.owner !== row.owner
   )
     throw new Error(
       "Este lançamento foi alterado ou removido. Feche a edição e abra o item novamente.",
@@ -71,5 +120,7 @@ export function editOccurrence(
         date: actualDate!,
       };
   }
+  if (original.installment && updated.owner !== current.owner)
+    applyInstallmentOwner(next, original.installment.group, updated.owner);
   return parseBackup(JSON.stringify(next));
 }

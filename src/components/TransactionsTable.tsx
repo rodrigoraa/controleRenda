@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -38,6 +39,7 @@ export function TransactionsTable({
   onStop,
   onCreate,
 }: Props) {
+  const ownerHintId = useId();
   return (
     <div
       className={`table-wrap ${compact ? "compact-list" : ""}`}
@@ -96,6 +98,7 @@ export function TransactionsTable({
                   <select
                     className={`owner-select ${row.owner}`}
                     aria-label={`Responsável por ${row.description}`}
+                    aria-describedby={row.installment ? ownerHintId : undefined}
                     value={row.owner}
                     onChange={(e) =>
                       onAssign(row, e.target.value as Entry["owner"])
@@ -165,6 +168,12 @@ export function TransactionsTable({
           ))}
         </tbody>
       </table>
+      {items.some((row) => row.installment) && (
+        <p className="field-note" id={ownerHintId}>
+          Em compras parceladas, trocar o responsável aplica a mudança a todas
+          as parcelas da mesma compra.
+        </p>
+      )}
       {items.length === 0 && (
         <div className="empty-state">
           <span className="empty-icon">

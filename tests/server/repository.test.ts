@@ -205,3 +205,58 @@ it("mantém o saldo atual ajustado e a renda iniciada no próximo mês após rec
   ]);
   expect(loaded.state.settled).toEqual(state.settled);
 });
+it("persiste o responsável de todas as dez parcelas e corrige overrides antigos ao reabrir", async () => {
+  const { assignOccurrenceOwner } = await import("../../src/lib/entry-editing");
+  const { splitPurchase, occurrences, invoice } = await import(
+    "../../src/lib/finance"
+  );
+  const state = createEmptyState("2026-11");
+  state.entries = splitPurchase(
+    {
+      id: "purchase",
+      description: "Compra da mãe",
+      amount: 100000,
+      date: "2026-12-10",
+      kind: "expense",
+      method: "card",
+      owner: "me",
+      category: "Compras",
+      repeat: "none",
+    },
+    10,
+  );
+  state.overrides["purchase-1:2026-12"] = {
+    description: "Compra da mãe",
+    amount: 10000,
+    category: "Compras",
+    owner: "mother",
+  };
+  state.overrides["purchase-3:2027-02"] = {
+    description: "Parcela ajustada",
+    amount: 9999,
+    category: "Saúde",
+    owner: "me",
+  };
+  await repo.saveBudget(userId, state, 0);
+  const loaded = await repo.readBudget(userId);
+  const adjusted = assignOccurrenceOwner(
+    loaded.state,
+    occurrences(loaded.state, "2027-01")[0],
+    "mother",
+  );
+  await repo.saveBudget(userId, adjusted, loaded.revision);
+  const reopened = await new PostgresRepository(pool).readBudget(userId);
+  expect(reopened.state.entries).toHaveLength(10);
+  expect(reopened.state.entries.every((e) => e.owner === "mother")).toBe(true);
+  expect(occurrences(reopened.state, "2027-02")[0]).toMatchObject({
+    description: "Parcela ajustada",
+    amount: 9999,
+    category: "Saúde",
+    owner: "mother",
+  });
+  expect(invoice(reopened.state, "2027-01")).toMatchObject({
+    me: 0,
+    mother: 10000,
+    toReceive: 10000,
+  });
+});
