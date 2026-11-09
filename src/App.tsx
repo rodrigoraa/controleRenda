@@ -58,11 +58,18 @@ import {
   editOccurrence,
   type DeleteScope,
 } from "./lib/entry-editing";
-import type { Entry, Occurrence, State, Transfer } from "./lib/types";
+import type { Entry, Occurrence, State, Transfer, Person } from "./lib/types";
 import { Modal } from "./components/Modal";
 import { TransactionsTable } from "./components/TransactionsTable";
 import { MobileNav } from "./components/MobileNav";
 import { DeleteEntryDialog } from "./components/DeleteEntryDialog";
+import { PersonDialog } from "./components/PersonControls";
+import { TransactionFilters } from "./components/TransactionFilters";
+import { addPersonToBudget } from "./lib/people";
+import {
+  defaultTransactionFilters,
+  selectTransactions,
+} from "./lib/transaction-filters";
 import {
   BalanceForm,
   EntryForm,
@@ -78,6 +85,7 @@ type Dialog =
   | { type: "reimbursement" }
   | { type: "settle"; entry: Occurrence }
   | { type: "delete-installments"; entry: Occurrence }
+  | { type: "person"; entry?: Occurrence }
   | { type: "confirm"; title: string; description: string; action: () => void }
   | null;
 const navigation: { id: Page; label: string; icon: LucideIcon }[] = [
@@ -121,6 +129,9 @@ export default function App({
     text: string;
     error?: boolean;
   } | null>(null);
+  const [transactionFilters, setTransactionFilters] = useState(
+    defaultTransactionFilters,
+  );
   const importRef = useRef<HTMLInputElement>(null);
   const rows = useMemo(() => occurrences(state, month), [state, month]);
   const summary = useMemo(
@@ -230,6 +241,7 @@ export default function App({
     setPage(next);
     setFilter("all");
     setSearch("");
+    setTransactionFilters(defaultTransactionFilters);
     setMenu(false);
     if (window.matchMedia?.("(max-width: 900px)").matches)
       window.scrollTo({ top: 0, behavior: "instant" });
@@ -299,6 +311,35 @@ export default function App({
         error: true,
       });
     }
+  }
+  async function addPerson(
+    name: string,
+    row?: Occurrence,
+  ): Promise<Person | undefined> {
+    try {
+      const added = addPersonToBudget(state, name);
+      const next = row
+        ? assignOccurrenceOwner(added.state, row, added.person.id)
+        : added.state;
+      if (
+        await commit(
+          next,
+          row?.installment
+            ? "Pessoa cadastrada e atribuída a todas as parcelas desta compra."
+            : "Pessoa cadastrada.",
+        )
+      )
+        return added.person;
+    } catch (error) {
+      setNotice({
+        text:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível cadastrar a pessoa.",
+        error: true,
+      });
+    }
+    return undefined;
   }
   function deleteRow(row: Occurrence) {
     if (row.installment) {
@@ -442,20 +483,21 @@ export default function App({
       });
     }
   }
-  const filteredRows = rows.filter(
-    (row) =>
-      (!search ||
-        `${row.description} ${row.category}`
-          .toLocaleLowerCase("pt-BR")
-          .includes(search.toLocaleLowerCase("pt-BR"))) &&
-      (page !== "card" || row.method === "card") &&
-      (page !== "recurring" || row.repeat === "monthly") &&
-      (filter === "all" ||
-        (filter === "income" && row.kind === "income") ||
-        (filter === "expense" && row.kind === "expense") ||
-        (filter === "pending" && row.method === "account" && !row.settledOn) ||
-        (["me", "mother", "unknown"].includes(filter) && row.owner === filter)),
+  const listFilters = { ...transactionFilters, query: search, quick: filter };
+  const filteredRows = selectTransactions(
+    rows.filter(
+      (row) =>
+        (page !== "card" || row.method === "card") &&
+        (page !== "recurring" || row.repeat === "monthly"),
+    ),
+    listFilters,
+    bill.outstanding === 0,
   );
+  const hasDetailedFilters =
+    transactionFilters.status !== "all" ||
+    transactionFilters.owner !== "all" ||
+    !!transactionFilters.minimum ||
+    !!transactionFilters.maximum;
   const unknownCount = rows.filter(
     (e) => e.method === "card" && e.owner === "unknown",
   ).length;
@@ -960,7 +1002,11 @@ export default function App({
                     </span>
                     <strong>{money(bill.total)}</strong>
                     <div className="virtual-card-bottom">
-                      <span>EU + MINHA MÃE</span>
+                      <span>
+                        {state.people?.length
+                          ? "CARTÃO COMPARTILHADO"
+                          : "EU + MINHA MÃE"}
+                      </span>
                       <span>Vence dia {state.settings.invoiceDay}</span>
                     </div>
                   </div>
@@ -978,6 +1024,12 @@ export default function App({
                     </span>
                     <strong>{money(bill.mother)}</strong>
                   </div>
+                  {bill.otherParts.map((part) => (
+                    <div className="share-row" key={part.owner}>
+                      <span>{part.name}</span>
+                      <strong>{money(part.amount)}</strong>
+                    </div>
+                  ))}
                   <div className="card-panel-bottom">
                     <span>
                       A receber dela <strong>{money(bill.toReceive)}</strong>
@@ -1007,11 +1059,15 @@ export default function App({
                     </button>
                   </div>
                   <TransactionsTable
+                    people={state.people}
+                    onAddPerson={(row) =>
+                      setDialog({ type: "person", entry: row })
+                    }
                     items={recentRows}
                     compact
                     page={page}
                     search={search}
-                    filter={filter}
+                    filter={hasDetailedFilters ? "filtered" : filter}
                     onAssign={assign}
                     onTogglePaid={togglePaid}
                     onEdit={(row) => setDialog({ type: "entry", editing: row })}
@@ -1113,6 +1169,25 @@ export default function App({
                       </small>
                     </section>
                   </div>
+                  {bill.otherParts.length > 0 && (
+                    <section
+                      className="panel other-parts"
+                      aria-label="Compras de outras pessoas"
+                    >
+                      <h2>Outros responsáveis</h2>
+                      {bill.otherParts.map((part) => (
+                        <div className="share-row" key={part.owner}>
+                          <span>{part.name}</span>
+                          <strong>{money(part.amount)}</strong>
+                        </div>
+                      ))}
+                      <p className="field-note">
+                        Repasses previstos automaticamente são os da sua mãe.
+                        Para recebimentos de outras pessoas, cadastre uma
+                        receita e confirme quando o dinheiro entrar.
+                      </p>
+                    </section>
+                  )}
                   <div className="card-action-bar">
                     <p>
                       <Clock3 size={16} />
@@ -1200,7 +1275,6 @@ export default function App({
                         ["all", "Todos"],
                         ["income", "Receitas"],
                         ["expense", "Despesas"],
-                        ["pending", "Pendentes"],
                       ]
                   ).map(([value, label]) => (
                     <button
@@ -1212,11 +1286,33 @@ export default function App({
                     </button>
                   ))}
                 </div>
+                <TransactionFilters
+                  value={listFilters}
+                  people={state.people}
+                  onChange={setTransactionFilters}
+                  onReset={() => {
+                    setTransactionFilters(defaultTransactionFilters);
+                    setSearch("");
+                    setFilter("all");
+                  }}
+                />
+                <p className="filtered-total">
+                  Total da lista:{" "}
+                  <strong>
+                    {money(
+                      filteredRows.reduce((sum, row) => sum + row.amount, 0),
+                    )}
+                  </strong>
+                </p>
                 <TransactionsTable
+                  people={state.people}
+                  onAddPerson={(row) =>
+                    setDialog({ type: "person", entry: row })
+                  }
                   items={filteredRows}
                   page={page}
                   search={search}
-                  filter={filter}
+                  filter={hasDetailedFilters ? "filtered" : filter}
                   onAssign={assign}
                   onTogglePaid={togglePaid}
                   onEdit={(row) => setDialog({ type: "entry", editing: row })}
@@ -1488,6 +1584,7 @@ export default function App({
           initialMethod={page === "card" ? "card" : "account"}
           onClose={() => setDialog(null)}
           onSave={saveEntry}
+          onAddPerson={(name) => addPerson(name)}
         />
       )}
       {dialog?.type === "balance" && (
@@ -1540,6 +1637,12 @@ export default function App({
           today={today}
           initialMonth={state.settings.initialMonth}
           onSave={saveTransfer}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === "person" && (
+        <PersonDialog
+          onAdd={(name) => addPerson(name, dialog.entry)}
           onClose={() => setDialog(null)}
         />
       )}

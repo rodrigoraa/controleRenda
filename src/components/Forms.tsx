@@ -11,6 +11,8 @@ import {
   monthLabel,
 } from "../lib/finance";
 import { Modal } from "./Modal";
+import { PersonCreator, type AddPerson } from "./PersonControls";
+import { personOptions } from "../lib/people";
 export function EntryForm({
   month,
   today,
@@ -19,6 +21,7 @@ export function EntryForm({
   initialMethod = "account",
   onSave,
   onClose,
+  onAddPerson,
 }: {
   month: string;
   today: string;
@@ -32,12 +35,14 @@ export function EntryForm({
     settledOn?: string,
   ) => void;
   onClose: () => void;
+  onAddPerson?: AddPerson;
 }) {
   const [kind, setKind] = useState<Entry["kind"]>(editing?.kind ?? "expense");
   const [method, setMethod] = useState<Entry["method"]>(
     editing?.method ?? initialMethod,
   );
   const [owner, setOwner] = useState<Entry["owner"]>(editing?.owner ?? "me");
+  const [addingPerson, setAddingPerson] = useState(false);
   const [description, setDescription] = useState(editing?.description ?? "");
   const [amount, setAmount] = useState(
     editing ? moneyInput(editing.amount) : "",
@@ -237,17 +242,40 @@ export function EntryForm({
               </select>
             </label>
             {method === "card" && (
-              <label>
-                Responsável
-                <select
-                  value={owner}
-                  onChange={(e) => setOwner(e.target.value as Entry["owner"])}
-                >
-                  <option value="me">Eu</option>
-                  <option value="mother">Minha mãe</option>
-                  <option value="unknown">A identificar</option>
-                </select>
-              </label>
+              <div className="person-field">
+                <label>
+                  Responsável
+                  <select
+                    value={owner}
+                    onChange={(e) => setOwner(e.target.value as Entry["owner"])}
+                  >
+                    {personOptions(state.people).map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {onAddPerson && !addingPerson && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setAddingPerson(true)}
+                  >
+                    Adicionar pessoa
+                  </button>
+                )}
+                {onAddPerson && addingPerson && (
+                  <PersonCreator
+                    onAdd={onAddPerson}
+                    onCreated={(person) => {
+                      setOwner(person.id);
+                      setAddingPerson(false);
+                    }}
+                    onCancel={() => setAddingPerson(false)}
+                  />
+                )}
+              </div>
             )}
           </div>
         )}

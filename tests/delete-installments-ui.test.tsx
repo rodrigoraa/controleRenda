@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../src/App";
 import { occurrences, splitPurchase } from "../src/lib/finance";
@@ -145,6 +145,8 @@ it("fecha a exclusão desatualizada em conflito para não apagar dados atualizad
     "Sua alteração não foi gravada",
   );
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  expect(screen.getByText("R$ 150,00")).toBeInTheDocument();
+  expect(
+    within(screen.getByRole("table")).getByText("R$ 150,00"),
+  ).toBeInTheDocument();
   expect(read().entries).toHaveLength(10);
 });

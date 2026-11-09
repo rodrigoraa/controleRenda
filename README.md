@@ -89,6 +89,8 @@ Os dados da versão antiga podem ser trazidos com **Importar dados deste navegad
 
 Cada conta criada tem seu próprio orçamento. Atribuir uma compra à mãe identifica o responsável financeiro; não dá acesso à conta nem compartilha o orçamento com outro login.
 
+Também é possível cadastrar outras pessoas no campo de responsável e filtrar lançamentos por pessoa, situação e faixa de valor, com ordenação por maior/menor valor ou data. Na lixeira de uma compra parcelada, escolha excluir só a parcela ou a compra inteira. Veja o [guia de uso no celular](docs/uso-no-celular.md) para os passos e o tratamento dos repasses.
+
 ## Conta e senha
 
 Troque a senha em **Configurações e dados → Minha conta**. A troca encerra as outras sessões. Sessões também expiram em 14 dias.

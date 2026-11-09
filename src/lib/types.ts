@@ -1,4 +1,5 @@
-export type Owner = "me" | "mother" | "unknown";
+export type Person = { id: `person_${string}`; name: string };
+export type Owner = "me" | "mother" | "unknown" | Person["id"];
 export type Entry = {
   id: string;
   description: string;
@@ -24,6 +25,7 @@ export type Transfer = {
 };
 export type State = {
   version: 1;
+  people?: Person[];
   settings: {
     initialMonth: string;
     openingBalance: number;
@@ -43,6 +45,7 @@ export type Occurrence = Entry & {
   settledOn?: string;
 };
 export type Invoice = {
+  otherParts: { owner: Person["id"]; name: string; amount: number }[];
   total: number;
   me: number;
   mother: number;

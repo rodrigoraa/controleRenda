@@ -88,6 +88,13 @@ export function invoice(state: State, month: string): Invoice {
     .reduce((s, p) => s + p.amount, 0);
   const mother = byOwner("mother");
   return {
+    otherParts: (state.people ?? [])
+      .map((person) => ({
+        owner: person.id,
+        name: person.name,
+        amount: byOwner(person.id),
+      }))
+      .filter((part) => part.amount > 0),
     total,
     me: byOwner("me"),
     mother,
@@ -174,7 +181,10 @@ export function summarize(state: State, month: string, today: string): Summary {
     nextClosing: at(addMonths(month, 1)),
     income: sum((e) => e.kind === "income"),
     expenses: sum((e) => e.kind === "expense"),
-    personalExpenses: sum((e) => e.kind === "expense" && e.owner !== "mother"),
+    personalExpenses: sum(
+      (e) =>
+        e.kind === "expense" && (e.owner === "me" || e.owner === "unknown"),
+    ),
     pendingIncome:
       sum((e) => e.kind === "income" && !e.settledOn) + bill.toReceive,
     pendingExpenses:

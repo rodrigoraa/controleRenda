@@ -28,22 +28,31 @@ export class PostgresRepository {
         throw new NotFoundError("Orçamento não encontrado.");
       const budget = result.rows[0],
         id = budget.id;
-      const [entries, overrides, skipped, settled, payments, reimbursements] =
-        await (async () => {
-          const results = [];
-          for (const sql of [
-            "SELECT * FROM entries WHERE budget_id=$1 ORDER BY id",
-            "SELECT * FROM occurrence_overrides WHERE budget_id=$1",
-            "SELECT * FROM skipped_occurrences WHERE budget_id=$1 ORDER BY entry_id,month",
-            "SELECT * FROM settled_occurrences WHERE budget_id=$1",
-            "SELECT * FROM invoice_payments WHERE budget_id=$1 ORDER BY occurred_on,id",
-            "SELECT * FROM reimbursements WHERE budget_id=$1 ORDER BY occurred_on,id",
-          ])
-            results.push(await client.query(sql, [id]));
-          return results;
-        })();
+      const [
+        entries,
+        overrides,
+        skipped,
+        settled,
+        payments,
+        reimbursements,
+        people,
+      ] = await (async () => {
+        const results = [];
+        for (const sql of [
+          "SELECT * FROM entries WHERE budget_id=$1 ORDER BY id",
+          "SELECT * FROM occurrence_overrides WHERE budget_id=$1",
+          "SELECT * FROM skipped_occurrences WHERE budget_id=$1 ORDER BY entry_id,month",
+          "SELECT * FROM settled_occurrences WHERE budget_id=$1",
+          "SELECT * FROM invoice_payments WHERE budget_id=$1 ORDER BY occurred_on,id",
+          "SELECT * FROM reimbursements WHERE budget_id=$1 ORDER BY occurred_on,id",
+          "SELECT id,name FROM budget_people WHERE budget_id=$1 ORDER BY name,id",
+        ])
+          results.push(await client.query(sql, [id]));
+        return results;
+      })();
       const state: State = {
         version: 1,
+        ...(people.rowCount ? { people: people.rows } : {}),
         settings: {
           initialMonth: budget.initial_month,
           openingBalance: Number(budget.opening_balance),
@@ -142,6 +151,12 @@ export class PostgresRepository {
         throw new ConflictError("O orçamento foi alterado em outro aparelho.");
       }
       const id = changed.rows[0].id;
+      await client.query("DELETE FROM budget_people WHERE budget_id=$1", [id]);
+      await client.query(
+        `INSERT INTO budget_people(budget_id,id,name)
+         SELECT $1,x.id,x.name FROM jsonb_to_recordset($2::jsonb) AS x(id text,name text)`,
+        [id, JSON.stringify(state.people ?? [])],
+      );
       await client.query("DELETE FROM entries WHERE budget_id=$1", [id]);
       await client.query("DELETE FROM invoice_payments WHERE budget_id=$1", [
         id,

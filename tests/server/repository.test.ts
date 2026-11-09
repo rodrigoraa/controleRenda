@@ -306,3 +306,53 @@ it("exclui a compra inteira do PostgreSQL, incluindo referências, sem atingir o
   expect(reopened.state.skipped).toEqual([]);
   expect(reopened.state.payments).toEqual(state.payments);
 });
+it("salva pessoas adicionais, parcelas e ajustes em seu orçamento sem expor a outra conta", async () => {
+  const { addPersonToBudget } = await import("../../src/lib/people");
+  const { splitPurchase, occurrences } = await import("../../src/lib/finance");
+  const { state, person } = addPersonToBudget(
+    createEmptyState("2026-11"),
+    "Alex",
+  );
+  state.entries = splitPurchase(
+    {
+      id: "alex-purchase",
+      description: "Compra Alex",
+      amount: 100000,
+      date: "2026-12-10",
+      kind: "expense",
+      method: "card",
+      owner: person.id,
+      category: "Compras",
+      repeat: "none",
+    },
+    10,
+  );
+  state.overrides["alex-purchase-2:2027-01"] = {
+    description: "Ajustada",
+    amount: 9000,
+    owner: person.id,
+    category: "Saúde",
+  };
+  await repo.saveBudget(userId, state, 0);
+  const loaded = await new PostgresRepository(pool).readBudget(userId);
+  expect(loaded.state.people).toEqual([person]);
+  expect(loaded.state.entries.every((entry) => entry.owner === person.id)).toBe(
+    true,
+  );
+  expect(occurrences(loaded.state, "2027-01")[0]).toMatchObject({
+    owner: person.id,
+    amount: 9000,
+  });
+  const other = randomUUID();
+  await pool.query(
+    "INSERT INTO users(id,email,name,password_hash) VALUES($1,$2,'Other','unused')",
+    [other, `${other}@example.test`],
+  );
+  await pool.query(
+    "INSERT INTO budgets(user_id,initial_month) VALUES($1,'2026-11')",
+    [other],
+  );
+  const otherBudget = await repo.readBudget(other);
+  expect(otherBudget.state.people ?? []).toEqual([]);
+  expect(otherBudget.state.entries).toEqual([]);
+});

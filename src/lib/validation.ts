@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { State } from "./types";
+import type { State, Person } from "./types";
 import { monthOf } from "./finance";
 const month = z.string().regex(/^(20\d{2})-(0[1-9]|1[0-2])$/);
 const date = z
@@ -15,7 +15,11 @@ const id = z
   .min(1)
   .max(100)
   .regex(/^[a-zA-Z0-9_-]+$/);
-const owner = z.enum(["me", "mother", "unknown"]);
+const personId = z
+  .string()
+  .regex(/^person_[a-zA-Z0-9_-]{1,80}$/)
+  .transform((value) => value as Person["id"]);
+const owner = z.union([z.enum(["me", "mother", "unknown"]), personId]);
 const editable = {
   description: z.string().trim().min(1).max(120),
   amount,
@@ -54,6 +58,14 @@ const transfer = z.object({ id, month, amount, date }).strict();
 const schema = z
   .object({
     version: z.literal(1),
+    people: z
+      .array(
+        z
+          .object({ id: personId, name: z.string().trim().min(1).max(60) })
+          .strict(),
+      )
+      .max(100)
+      .optional(),
     settings: z
       .object({
         initialMonth: month,
@@ -81,6 +93,28 @@ const schema = z
         message: "Referências ou períodos inconsistentes no backup.",
       });
     const ids = s.entries.map((e) => e.id);
+    const people = s.people ?? [];
+    const peopleIds = new Set(people.map((person) => person.id));
+    const names = people.map((person) =>
+      person.name
+        .normalize("NFKC")
+        .replace(/\s+/g, " ")
+        .toLocaleLowerCase("pt-BR"),
+    );
+    if (
+      peopleIds.size !== people.length ||
+      new Set(names).size !== names.length ||
+      names.some((name) => ["eu", "minha mãe", "a identificar"].includes(name))
+    )
+      issue();
+    const knownOwner = (value: string) =>
+      ["me", "mother", "unknown"].includes(value) ||
+      peopleIds.has(value as Person["id"]);
+    if (
+      s.entries.some((entry) => !knownOwner(entry.owner)) ||
+      Object.values(s.overrides).some((override) => !knownOwner(override.owner))
+    )
+      issue();
     const entriesById = new Map(s.entries.map((e) => [e.id, e]));
     if (new Set(s.skipped).size !== s.skipped.length) issue();
     if (new Set(ids).size !== ids.length) issue();

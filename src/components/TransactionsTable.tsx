@@ -11,7 +11,8 @@ import {
   Leaf,
   ArrowRight,
 } from "lucide-react";
-import type { Entry, Occurrence } from "../lib/types";
+import type { Entry, Occurrence, Person } from "../lib/types";
+import { personOptions } from "../lib/people";
 import { money, shortDate } from "../lib/finance";
 type Props = {
   items: Occurrence[];
@@ -25,6 +26,8 @@ type Props = {
   onDelete: (row: Occurrence) => void;
   onStop: (row: Occurrence) => void;
   onCreate: () => void;
+  people?: Person[];
+  onAddPerson?: (row: Occurrence) => void;
 };
 export function TransactionsTable({
   items,
@@ -38,6 +41,8 @@ export function TransactionsTable({
   onDelete,
   onStop,
   onCreate,
+  people,
+  onAddPerson,
 }: Props) {
   const ownerHintId = useId();
   return (
@@ -100,13 +105,20 @@ export function TransactionsTable({
                     aria-label={`Responsável por ${row.description}`}
                     aria-describedby={row.installment ? ownerHintId : undefined}
                     value={row.owner}
-                    onChange={(e) =>
-                      onAssign(row, e.target.value as Entry["owner"])
-                    }
+                    onChange={(e) => {
+                      if (e.target.value === "__add_person__")
+                        onAddPerson?.(row);
+                      else onAssign(row, e.target.value as Entry["owner"]);
+                    }}
                   >
-                    <option value="me">Eu</option>
-                    <option value="mother">Minha mãe</option>
-                    <option value="unknown">A identificar</option>
+                    {personOptions(people).map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name}
+                      </option>
+                    ))}
+                    {onAddPerson && (
+                      <option value="__add_person__">Adicionar pessoa…</option>
+                    )}
                   </select>
                 ) : (
                   <button
