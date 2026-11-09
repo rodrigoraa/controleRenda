@@ -124,3 +124,38 @@ it("serializa criação de sessão com redefinição de senha para não reativar
     client.release();
   }
 });
+it("persiste a correção de data recorrente e sua confirmação após reabrir o orçamento", async () => {
+  const { editOccurrence } = await import("../../src/lib/entry-editing");
+  const { occurrences } = await import("../../src/lib/finance");
+  const state = createEmptyState("2026-11");
+  state.entries = [
+    {
+      id: "salary",
+      description: "Salário",
+      amount: 300000,
+      date: "2026-11-05",
+      kind: "income",
+      method: "account",
+      owner: "me",
+      category: "Salário",
+      repeat: "monthly",
+    },
+  ];
+  state.settled["salary:2026-11"] = { date: "2026-11-06" };
+  await repo.saveBudget(userId, state, 0);
+  const first = await repo.readBudget(userId),
+    row = occurrences(first.state, "2026-11")[0];
+  const updated = editOccurrence(
+    first.state,
+    row,
+    { ...row, date: "2026-12-09" },
+    "2026-11-03",
+  );
+  await repo.saveBudget(userId, updated, first.revision);
+  const reloaded = await new PostgresRepository(pool).readBudget(userId);
+  expect(occurrences(reloaded.state, "2026-11")).toHaveLength(0);
+  const december = occurrences(reloaded.state, "2026-12");
+  expect(december.map((e) => e.date)).toEqual(["2026-12-05", "2026-12-09"]);
+  expect(december[1].settledOn).toBe("2026-11-03");
+  expect(occurrences(reloaded.state, "2027-01")[0].date).toBe("2027-01-05");
+});

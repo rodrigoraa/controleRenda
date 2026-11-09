@@ -23,7 +23,12 @@ export function EntryForm({
   state: State;
   editing?: Occurrence;
   initialMethod?: Entry["method"];
-  onSave: (entry: Entry, count: number, settled: boolean) => void;
+  onSave: (
+    entry: Entry,
+    count: number,
+    settled: boolean,
+    settledOn?: string,
+  ) => void;
   onClose: () => void;
 }) {
   const [kind, setKind] = useState<Entry["kind"]>(editing?.kind ?? "expense");
@@ -38,6 +43,7 @@ export function EntryForm({
   const [date, setDate] = useState(
     editing?.date ?? dateInMonth(month, Number(today.slice(8))),
   );
+  const [confirmedDate, setConfirmedDate] = useState(editing?.settledOn ?? "");
   const [category, setCategory] = useState(editing?.category ?? "Outros");
   const [repeat, setRepeat] = useState<Entry["repeat"]>(
     editing?.repeat ?? "none",
@@ -89,6 +95,7 @@ export function EntryForm({
       },
       count,
       settled,
+      editing?.settledOn ? confirmedDate : undefined,
     );
   };
   return (
@@ -96,7 +103,7 @@ export function EntryForm({
       title={editing ? "Editar lançamento" : "Novo lançamento"}
       subtitle={
         editing
-          ? "A alteração vale somente para este mês."
+          ? "Altere este lançamento. Outros meses e parcelas mantêm os dados cadastrados."
           : "Poucos detalhes. Tudo organizado."
       }
       onClose={onClose}
@@ -161,18 +168,52 @@ export function EntryForm({
             />
           </label>
           <label>
-            {method === "card" ? "Data na primeira fatura" : "Data prevista"}
+            {method === "card"
+              ? editing
+                ? "Data na fatura"
+                : "Data na primeira fatura"
+              : "Data prevista"}
             <input
               required
               type="date"
               min={`${state.settings.initialMonth}-01`}
               max="2099-12-31"
               value={date}
-              disabled={!!editing}
               onChange={(e) => setDate(e.target.value)}
             />
           </label>
         </div>
+        {editing?.settledOn && (
+          <>
+            <label>
+              {kind === "income" ? "Data do recebimento" : "Data do pagamento"}
+              <input
+                type="date"
+                required
+                min={`${state.settings.initialMonth}-01`}
+                max={today}
+                value={confirmedDate}
+                onChange={(e) => setConfirmedDate(e.target.value)}
+              />
+            </label>
+            <p className="field-note">
+              A data prevista organiza o orçamento. A data da movimentação
+              informa quando o dinheiro realmente entrou ou saiu.
+            </p>
+          </>
+        )}
+        {editing?.repeat === "monthly" && (
+          <p className="field-note">
+            <Info size={16} />A mudança de data vale só para este lançamento. Os
+            próximos meses continuam na data original.
+          </p>
+        )}
+        {editing?.installment && (
+          <p className="field-note">
+            <Info size={16} />A mudança vale só para esta parcela. As outras
+            continuam nas datas cadastradas.
+          </p>
+        )}
         {kind === "expense" && (
           <div className="form-grid">
             <label>
@@ -248,8 +289,10 @@ export function EntryForm({
           )}
         {method === "card" && (
           <p className="field-note">
-            <Info size={16} />O mês da data escolhida é o mês da fatura. As
-            parcelas seguintes entram nos próximos meses.
+            <Info size={16} />
+            {editing
+              ? "O mês da data escolhida define a fatura desta compra. Pagamentos e repasses já registrados permanecem na fatura original."
+              : "O mês da data escolhida é o mês da fatura. As parcelas seguintes entram nos próximos meses."}
           </p>
         )}
         {!editing && method === "account" && (

@@ -51,6 +51,7 @@ import { BudgetConflictError, type BudgetPersistence } from "./lib/persistence";
 import { AccountPanel } from "./components/AccountPanel";
 import type { AuthUser } from "./lib/api";
 import { createDemo } from "./lib/demo";
+import { editOccurrence } from "./lib/entry-editing";
 import type { Entry, Occurrence, State, Transfer } from "./lib/types";
 import { Modal } from "./components/Modal";
 import { TransactionsTable } from "./components/TransactionsTable";
@@ -215,26 +216,50 @@ export default function App({
     if (window.matchMedia?.("(max-width: 900px)").matches)
       window.scrollTo({ top: 0, behavior: "instant" });
   }
-  async function saveEntry(entry: Entry, count: number, settled: boolean) {
-    const next = structuredClone(state);
-    if (dialog?.type === "entry" && dialog.editing) {
-      const row = dialog.editing;
-      next.overrides[row.key] = {
-        description: entry.description,
-        amount: entry.amount,
-        owner: entry.owner,
-        category: entry.category,
-      };
-    } else {
-      const items =
-        entry.method === "card" && count > 1
-          ? splitPurchase(entry, count)
-          : [entry];
-      next.entries.push(...items);
-      if (settled && entry.method === "account")
-        next.settled[`${entry.id}:${monthOf(entry.date)}`] = { date: today };
+  async function saveEntry(
+    entry: Entry,
+    count: number,
+    settled: boolean,
+    settledOn?: string,
+  ) {
+    try {
+      const editing = dialog?.type === "entry" ? dialog.editing : undefined;
+      const next = editing
+        ? editOccurrence(state, editing, entry, settledOn)
+        : structuredClone(state);
+      if (!editing) {
+        next.entries.push(
+          ...(entry.method === "card" && count > 1
+            ? splitPurchase(entry, count)
+            : [entry]),
+        );
+        if (settled && entry.method === "account")
+          next.settled[`${entry.id}:${monthOf(entry.date)}`] = { date: today };
+      }
+      const moved = editing && entry.date !== editing.date;
+      if (
+        await commit(
+          next,
+          moved
+            ? `Data atualizada. Lançamento em ${monthLabel(monthOf(entry.date))}.`
+            : "Lançamento salvo.",
+        )
+      ) {
+        if (moved) {
+          setMonth(monthOf(entry.date));
+          if (page === "recurring") navigate("entries");
+        }
+        setDialog(null);
+      }
+    } catch (error) {
+      setNotice({
+        text:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível alterar o lançamento.",
+        error: true,
+      });
     }
-    if (await commit(next, "Lançamento salvo.")) setDialog(null);
   }
   function assign(row: Occurrence, owner: Entry["owner"]) {
     const next = structuredClone(state);
