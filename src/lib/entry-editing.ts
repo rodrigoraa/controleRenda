@@ -1,6 +1,52 @@
 import type { Entry, Occurrence, State } from "./types";
 import { monthOf, occurrences } from "./finance";
 import { parseBackup } from "./validation";
+export type DeleteScope = "single" | "purchase";
+
+/** Remove a single occurrence or the whole purchase, preserving actual cash transfers. */
+export function deleteOccurrence(
+  state: State,
+  row: Occurrence,
+  scope: DeleteScope,
+): State {
+  const current = occurrences(state, row.month).find(
+    (entry) => entry.key === row.key,
+  );
+  if (!current)
+    throw new Error(
+      "Este lançamento foi alterado ou removido. Abra o item novamente.",
+    );
+  const next = structuredClone(state);
+  if (scope === "single") {
+    next.skipped.push(current.key);
+    delete next.settled[current.key];
+  } else {
+    if (!current.installment || current.method !== "card")
+      throw new Error(
+        "A exclusão de todas as parcelas exige uma compra parcelada.",
+      );
+    const group = current.installment.group;
+    const ids = new Set(
+      next.entries
+        .filter(
+          (entry) =>
+            entry.method === "card" && entry.installment?.group === group,
+        )
+        .map((entry) => entry.id),
+    );
+    const keepReference = (key: string) => !ids.has(key.slice(0, -8));
+    next.entries = next.entries.filter((entry) => !ids.has(entry.id));
+    next.overrides = Object.fromEntries(
+      Object.entries(next.overrides).filter(([key]) => keepReference(key)),
+    );
+    next.settled = Object.fromEntries(
+      Object.entries(next.settled).filter(([key]) => keepReference(key)),
+    );
+    next.skipped = next.skipped.filter(keepReference);
+  }
+  return parseBackup(JSON.stringify(next));
+}
+
 function applyInstallmentOwner(
   state: State,
   group: string,

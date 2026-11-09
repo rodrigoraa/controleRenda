@@ -3082,6 +3082,18 @@ tbody tr:last-child td {
   display: grid;
   gap: 10px;
 }
+.delete-options {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+.delete-options legend {
+  font-weight: 650;
+  margin-bottom: 14px;
+}
 @media (max-width: 600px) {
   .balance-breakdown {
     padding: 18px 16px;

@@ -260,3 +260,49 @@ it("persiste o responsável de todas as dez parcelas e corrige overrides antigos
     toReceive: 10000,
   });
 });
+it("exclui a compra inteira do PostgreSQL, incluindo referências, sem atingir outra compra", async () => {
+  const { deleteOccurrence } = await import("../../src/lib/entry-editing");
+  const { splitPurchase, occurrences } = await import("../../src/lib/finance");
+  const state = createEmptyState("2026-11");
+  const purchase = {
+    id: "bad",
+    description: "Compra",
+    amount: 100000,
+    date: "2026-12-10",
+    kind: "expense" as const,
+    method: "card" as const,
+    owner: "mother" as const,
+    category: "Compras",
+    repeat: "none" as const,
+  };
+  state.entries = [
+    ...splitPurchase(purchase, 10),
+    ...splitPurchase({ ...purchase, id: "other" }, 2),
+  ];
+  state.skipped = ["bad-1:2026-12"];
+  state.overrides["bad-3:2027-02"] = {
+    description: "Ajustada",
+    amount: 9000,
+    owner: "mother",
+    category: "Saúde",
+  };
+  state.payments = [
+    { id: "pay", month: "2026-12", amount: 5000, date: "2026-11-09" },
+  ];
+  await repo.saveBudget(userId, state, 0);
+  const loaded = await repo.readBudget(userId);
+  const changed = deleteOccurrence(
+    loaded.state,
+    occurrences(loaded.state, "2027-01").find((e) => e.id === "bad-2")!,
+    "purchase",
+  );
+  await repo.saveBudget(userId, changed, loaded.revision);
+  const reopened = await new PostgresRepository(pool).readBudget(userId);
+  expect(reopened.state.entries.map((e) => e.id)).toEqual([
+    "other-1",
+    "other-2",
+  ]);
+  expect(reopened.state.overrides).toEqual({});
+  expect(reopened.state.skipped).toEqual([]);
+  expect(reopened.state.payments).toEqual(state.payments);
+});

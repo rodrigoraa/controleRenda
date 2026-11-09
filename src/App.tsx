@@ -52,11 +52,17 @@ import { BudgetConflictError, type BudgetPersistence } from "./lib/persistence";
 import { AccountPanel } from "./components/AccountPanel";
 import type { AuthUser } from "./lib/api";
 import { createDemo } from "./lib/demo";
-import { assignOccurrenceOwner, editOccurrence } from "./lib/entry-editing";
+import {
+  assignOccurrenceOwner,
+  deleteOccurrence,
+  editOccurrence,
+  type DeleteScope,
+} from "./lib/entry-editing";
 import type { Entry, Occurrence, State, Transfer } from "./lib/types";
 import { Modal } from "./components/Modal";
 import { TransactionsTable } from "./components/TransactionsTable";
 import { MobileNav } from "./components/MobileNav";
+import { DeleteEntryDialog } from "./components/DeleteEntryDialog";
 import {
   BalanceForm,
   EntryForm,
@@ -71,6 +77,7 @@ type Dialog =
   | { type: "payment" }
   | { type: "reimbursement" }
   | { type: "settle"; entry: Occurrence }
+  | { type: "delete-installments"; entry: Occurrence }
   | { type: "confirm"; title: string; description: string; action: () => void }
   | null;
 const navigation: { id: Page; label: string; icon: LucideIcon }[] = [
@@ -186,7 +193,11 @@ export default function App({
       return true;
     } catch (error) {
       if (error instanceof BudgetConflictError) {
-        setDialog((current) => (current?.type === "confirm" ? null : current));
+        setDialog((current) =>
+          current?.type === "confirm" || current?.type === "delete-installments"
+            ? null
+            : current,
+        );
         try {
           const latest = await persistence.load();
           setReal(latest.state);
@@ -290,17 +301,38 @@ export default function App({
     }
   }
   function deleteRow(row: Occurrence) {
+    if (row.installment) {
+      setDialog({ type: "delete-installments", entry: row });
+      return;
+    }
     setDialog({
       type: "confirm",
       title: "Excluir este lançamento?",
       description: `“${row.description}” será removido somente de ${monthLabel(row.month)}. Outras parcelas e meses continuam no controle.`,
-      action: async () => {
-        const next = structuredClone(state);
-        next.skipped.push(row.key);
-        delete next.settled[row.key];
-        if (await commit(next, "Lançamento excluído.")) setDialog(null);
-      },
+      action: () => removeEntry(row, "single"),
     });
+  }
+  async function removeEntry(row: Occurrence, scope: DeleteScope) {
+    try {
+      const next = deleteOccurrence(state, row, scope);
+      if (
+        await commit(
+          next,
+          scope === "purchase"
+            ? "Compra e todas as suas parcelas excluídas."
+            : "Lançamento excluído.",
+        )
+      )
+        setDialog(null);
+    } catch (error) {
+      setNotice({
+        text:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível excluir o lançamento.",
+        error: true,
+      });
+    }
   }
   function togglePaid(row: Occurrence) {
     if (!row.settledOn) {
@@ -1509,6 +1541,21 @@ export default function App({
           initialMonth={state.settings.initialMonth}
           onSave={saveTransfer}
           onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.type === "delete-installments" && (
+        <DeleteEntryDialog
+          entry={dialog.entry}
+          count={
+            state.entries.filter(
+              (entry) =>
+                entry.method === "card" &&
+                entry.installment?.group === dialog.entry.installment?.group,
+            ).length
+          }
+          saving={saving}
+          onClose={() => setDialog(null)}
+          onDelete={(scope) => removeEntry(dialog.entry, scope)}
         />
       )}
       {dialog?.type === "confirm" && (
