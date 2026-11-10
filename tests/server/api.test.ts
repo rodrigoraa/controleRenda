@@ -228,30 +228,54 @@ it.each([
   ["PUT", "/api/budget"],
   ["POST", "/api/auth/password"],
   ["POST", "/api/auth/logout"],
-] as const)("recusa %s %s sem a conta esperada", async (method, url) => {
-  const account = await freshAccount(),
-    cookie = await login(account.email);
-  const response = await app.inject({
-    method,
-    url,
-    headers: { ...headers, cookie },
-    ...(method === "PUT"
-      ? { payload: { state: createDemo("2026-11"), revision: 0 } }
-      : {}),
-    ...(url.endsWith("password")
-      ? {
-          payload: {
-            currentPassword: password,
-            newPassword: "nova senha sem vínculo 2026",
-          },
-        }
-      : {}),
-  });
-  expect(response.statusCode).toBe(401);
-  expect(
-    (await app.inject({ url: "/api/auth/me", headers: { cookie } })).statusCode,
-  ).toBe(200);
-});
+] as const)(
+  "exige atualizar %s %s sem a conta esperada",
+  async (method, url) => {
+    const account = await freshAccount(),
+      cookie = await login(account.email);
+    const before = await repo.readBudget(account.id);
+    for (const binding of [undefined, ""]) {
+      const response = await app.inject({
+        method,
+        url,
+        headers: {
+          ...headers,
+          cookie,
+          ...(binding === undefined ? {} : { "x-controle-account": binding }),
+        },
+        ...(method === "PUT"
+          ? { payload: { state: createDemo("2026-11"), revision: 0 } }
+          : {}),
+        ...(url.endsWith("password")
+          ? {
+              payload: {
+                currentPassword: password,
+                newPassword: "nova senha sem vínculo 2026",
+              },
+            }
+          : {}),
+      });
+      expect(response.statusCode).toBe(428);
+      expect(response.json()).toEqual({
+        message: "Atualize a página para continuar com segurança.",
+      });
+      expect(response.headers["set-cookie"]).toBeUndefined();
+    }
+    expect(await repo.readBudget(account.id)).toEqual(before);
+    expect(
+      (await app.inject({ url: "/api/auth/me", headers: { cookie } }))
+        .statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await app.inject({
+          url: "/api/budget",
+          headers: accountHeaders(cookie, account.id),
+        })
+      ).statusCode,
+    ).toBe(200);
+  },
+);
 it.each(["/api/auth/password", "/api/auth/logout"])(
   "recusa %s de uma aba ligada a outra conta",
   async (url) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -26,8 +26,8 @@ import { loadState } from "./lib/storage";
 import { monthOf, localDate } from "./lib/finance";
 type Phase =
   | { kind: "loading" }
-  | { kind: "login" }
-  | { kind: "error"; message: string }
+  | { kind: "login"; message?: string }
+  | { kind: "error"; message: string; refreshPage?: boolean }
   | {
       kind: "ready";
       user: AuthUser;
@@ -37,6 +37,9 @@ type Phase =
 export default function Application() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" }),
     [attempt, setAttempt] = useState(0);
+  const phaseRef = useRef(phase);
+  const generation = useRef(0);
+  phaseRef.current = phase;
   function ready(
     user: AuthUser,
     initial: Awaited<ReturnType<typeof fetchBudget>>,
@@ -55,19 +58,24 @@ export default function Application() {
   }
   useEffect(() => {
     let active = true;
+    const loadGeneration = ++generation.current;
+    let verification: Phase | null = null;
+    const currentLoad = () => active && generation.current === loadGeneration;
     async function load() {
       setPhase({ kind: "loading" });
       try {
         const { user } = await apiRequest<{ user: AuthUser }>("/auth/me");
+        if (!currentLoad()) return;
         const budget = await fetchBudget(user.id);
-        if (active) setPhase(ready(user, budget));
+        if (currentLoad()) setPhase(ready(user, budget));
       } catch (error) {
-        if (!active) return;
+        if (!currentLoad()) return;
         setPhase(
           error instanceof ApiError && error.status === 401
             ? { kind: "login" }
             : {
                 kind: "error",
+                refreshPage: error instanceof ApiError && error.status === 428,
                 message:
                   error instanceof Error
                     ? error.message
@@ -77,29 +85,59 @@ export default function Application() {
       }
     }
     void load();
-    const expired = () => {
-      if (active) setPhase({ kind: "login" });
+    const expired = async () => {
+      const displayed = phaseRef.current;
+      if (!active || displayed.kind !== "ready" || verification === displayed)
+        return;
+      verification = displayed;
+      const checkGeneration = generation.current;
+      const currentCheck = () =>
+        active &&
+        generation.current === checkGeneration &&
+        phaseRef.current === displayed;
+      function requireLogin(message: string) {
+        if (!currentCheck()) return;
+        generation.current += 1;
+        setPhase({ kind: "login", message });
+      }
+      try {
+        // A delayed 401 may belong to the session that preceded this login.
+        const { user } = await apiRequest<{ user: AuthUser }>("/auth/me");
+        if (user.id !== displayed.user.id)
+          requireLogin("Sua conta mudou em outra aba. Entre novamente.");
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401)
+          requireLogin("Sua sessão expirou. Entre novamente.");
+      } finally {
+        if (verification === displayed) verification = null;
+      }
     };
     window.addEventListener("controle-renda:session-expired", expired);
     return () => {
       active = false;
+      generation.current += 1;
       window.removeEventListener("controle-renda:session-expired", expired);
     };
   }, [attempt]);
   async function login(email: string, password: string) {
+    const loginGeneration = ++generation.current;
     const { user } = await apiRequest<{ user: AuthUser }>(
       "/auth/login",
       "POST",
       { email, password },
     );
+    if (generation.current !== loginGeneration) return;
     try {
-      setPhase(ready(user, await fetchBudget(user.id)));
+      const budget = await fetchBudget(user.id);
+      if (generation.current === loginGeneration) setPhase(ready(user, budget));
     } catch (error) {
+      if (generation.current !== loginGeneration) return;
       setPhase(
         error instanceof ApiError && error.status === 401
           ? { kind: "login" }
           : {
               kind: "error",
+              refreshPage: error instanceof ApiError && error.status === 428,
               message:
                 error instanceof Error
                   ? error.message
@@ -109,9 +147,11 @@ export default function Application() {
     }
   }
   async function logout() {
-    if (phase.kind !== "ready") return;
-    await apiRequest("/auth/logout", "POST", undefined, phase.user.id);
-    setPhase({ kind: "login" });
+    const displayed = phaseRef.current;
+    if (displayed.kind !== "ready") return;
+    const logoutGeneration = ++generation.current;
+    await apiRequest("/auth/logout", "POST", undefined, displayed.user.id);
+    if (generation.current === logoutGeneration) setPhase({ kind: "login" });
   }
   if (phase.kind === "ready")
     return (
@@ -122,7 +162,8 @@ export default function Application() {
         legacyBudget={phase.legacy}
       />
     );
-  if (phase.kind === "login") return <LoginForm onLogin={login} />;
+  if (phase.kind === "login")
+    return <LoginForm onLogin={login} message={phase.message} />;
   return (
     <div className="connection-screen">
       <div className="brand">
@@ -146,10 +187,14 @@ export default function Application() {
           <p role="alert">{phase.message}</p>
           <button
             className="button primary"
-            onClick={() => setAttempt((n) => n + 1)}
+            onClick={() =>
+              phase.refreshPage
+                ? window.location.reload()
+                : setAttempt((n) => n + 1)
+            }
           >
             <RefreshCw size={16} />
-            Tentar novamente
+            {phase.refreshPage ? "Atualizar página" : "Tentar novamente"}
           </button>
         </>
       )}
@@ -158,8 +203,10 @@ export default function Application() {
 }
 function LoginForm({
   onLogin,
+  message,
 }: {
   onLogin: (email: string, password: string) => Promise<void>;
+  message?: string;
 }) {
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
@@ -233,6 +280,7 @@ function LoginForm({
           <p className="eyebrow">SEU ESPAÇO FINANCEIRO</p>
           <h2>Bem-vindo de volta.</h2>
           <p>Entre para cuidar do seu dinheiro com clareza.</p>
+          {message && <p role="status">{message}</p>}
           <label>
             E-mail
             <input

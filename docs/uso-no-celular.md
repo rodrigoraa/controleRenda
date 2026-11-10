@@ -83,9 +83,11 @@ A revisão de lógica também exige recarregar as outras abas abertas: o servido
 
 O cadastro de pessoas usa uma nova migração de banco, aplicada automaticamente ao iniciar o servidor. Backups anteriores continuam podendo ser importados.
 
+Se aparecer **Atualizar página**, use esse botão para carregar a versão atual. Uma falha temporária durante a verificação de acesso mantém a tela aberta; uma sessão realmente expirada ou a mudança de conta pede login com uma mensagem. Veja a [correção de sessão de 10 de novembro](correcao-sessao-2026-11-10.md).
+
 ## Verificação da alteração
 
-- Suíte completa: 160 testes aprovados, incluindo 30 testes com PostgreSQL real.
+- Suíte completa: 173 testes aprovados, incluindo 30 testes com PostgreSQL real.
 - TypeScript e builds da interface e do servidor aprovados.
 - Chromium automatizado: larguras de 320, 360, 390, 430, 768, 844 e 1280 pixels; a largura 844 foi testada em paisagem com 390 pixels de altura.
 - Login verificado em 320, 390 e 1280 pixels.
@@ -97,6 +99,7 @@ O cadastro de pessoas usa uma nova migração de banco, aplicada automaticamente
 - Compras em 10 parcelas verificadas em 320, 390 e 1280 pixels: responsável no cadastro, troca pela lista e pelo lápis, virada do ano, preservação de valores individuais e reabertura após salvar.
 - Filtros combinados, cadastro de pessoas pelo formulário/lista, atribuição das 10 parcelas e exclusão da compra inteira verificados em 320, 390 e 1280 pixels. A exclusão também foi conferida com 440 pixels de altura; nomes de 60 caracteres foram verificados em 320 pixels.
 - A auditoria de lógica conferiu conflitos entre abas, confirmações, pagamentos/repasses e troca de conta em 320, 390 e 1280 pixels com Fastify e PostgreSQL reais.
+- A recuperação de sessão foi conferida nas mesmas larguras, com respostas atrasadas e falhas controladas, preservando o rascunho e exigindo login em caso de expiração real ou outra conta.
 - Testes anteriores de layout usaram API simulada. Todos os cenários usaram dados fictícios e banco separado; não foram usados dados ou credenciais da instalação real.
 
 A simulação de navegador não substitui o teste em aparelho físico; Safari/iOS não foi executado nesta conferência.

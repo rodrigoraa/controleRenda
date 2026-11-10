@@ -155,8 +155,14 @@ export async function createServer(config: Config, pool: pg.Pool) {
   }
   async function requireAccount(request: FastifyRequest) {
     const user = await requireUser(request);
+    const accountId = request.headers["x-controle-account"];
+    if (!accountId)
+      throw new HttpError(
+        428,
+        "Atualize a página para continuar com segurança.",
+      );
     // Tabs share cookies, so the rendered account must match this request's session.
-    if (request.headers["x-controle-account"] !== user.id)
+    if (accountId !== user.id)
       throw new HttpError(
         401,
         "Sua conta mudou em outra aba. Entre novamente para continuar.",

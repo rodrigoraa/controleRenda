@@ -93,6 +93,8 @@ Também é possível cadastrar outras pessoas no campo de responsável e filtrar
 
 A [auditoria de lógica de 9 de novembro](docs/auditoria-logica-2026-11-09.md) registra os cenários conferidos e as correções para conflitos entre abas, confirmações desatualizadas e troca de conta. Recarregue as abas após atualizar o servidor para usar a identificação de conta exigida pela API.
 
+A [correção de sessão de 10 de novembro](docs/correcao-sessao-2026-11-10.md) evita retornar ao login por respostas antigas ou falhas temporárias e distingue uma página desatualizada de uma sessão expirada.
+
 ## Conta e senha
 
 Troque a senha em **Configurações e dados → Minha conta**. A troca encerra as outras sessões. Sessões também expiram em 14 dias.
