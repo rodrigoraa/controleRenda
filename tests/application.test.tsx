@@ -1,5 +1,5 @@
 import { afterEach, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "./render";
 import userEvent from "@testing-library/user-event";
 import Application from "../src/Application";
 import { createEmptyState } from "../src/lib/validation";

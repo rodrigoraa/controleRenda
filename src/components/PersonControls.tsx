@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button, TextInput } from "@mantine/core";
 import type { Person } from "../lib/types";
 import { Modal } from "./Modal";
 export type AddPerson = (name: string) => Promise<Person | undefined>;
@@ -24,39 +25,33 @@ export function PersonCreator({
     }
   }
   return (
-    <div className="person-creator">
-      <label>
-        Nome da pessoa
-        <input
-          maxLength={60}
-          value={name}
-          autoComplete="off"
-          onChange={(event) => setName(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              register();
-            }
-          }}
-        />
-      </label>
-      <div className="person-actions">
-        <button
+    <div className="cr-person-creator" aria-busy={busy}>
+      <TextInput
+        className="cr-field"
+        label="Nome da pessoa"
+        maxLength={60}
+        value={name}
+        autoComplete="off"
+        onChange={(event) => setName(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            register();
+          }
+        }}
+      />
+      <div className="cr-person-actions">
+        <Button
           type="button"
-          className="button secondary"
+          variant="default"
           disabled={busy}
           onClick={onCancel}
         >
           Cancelar cadastro
-        </button>
-        <button
-          type="button"
-          className="button primary"
-          disabled={busy}
-          onClick={register}
-        >
+        </Button>
+        <Button type="button" loading={busy} onClick={register}>
           Cadastrar pessoa
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -74,7 +69,7 @@ export function PersonDialog({
       subtitle="Cadastre quem será responsável pela compra."
       onClose={onClose}
     >
-      <div className="form-content">
+      <div className="cr-form">
         <PersonCreator onAdd={onAdd} onCreated={onClose} onCancel={onClose} />
       </div>
     </Modal>

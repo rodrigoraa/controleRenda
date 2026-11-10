@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react";
+import { Button, Checkbox, NativeSelect, TextInput } from "@mantine/core";
+import { ValidatedForm } from "../ui/ValidatedForm";
 import { ArrowDownLeft, ArrowUpRight, Info } from "lucide-react";
 import type { Entry, Occurrence, State, Transfer } from "../lib/types";
 import {
@@ -117,12 +119,13 @@ export function EntryForm({
       }
       onClose={onClose}
     >
-      <form onSubmit={submit} className="form-content">
+      <ValidatedForm onSubmit={submit} className="cr-form">
         {!editing && (
-          <div className="kind-toggle">
-            <button
+          <div className="cr-kind-toggle">
+            <Button
               type="button"
-              className={kind === "expense" ? "active expense" : ""}
+              variant={kind === "expense" ? "white" : "subtle"}
+              aria-pressed={kind === "expense"}
               onClick={() => {
                 setKind("expense");
                 setCategory("Outros");
@@ -130,10 +133,11 @@ export function EntryForm({
             >
               <ArrowUpRight size={17} />
               Despesa
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className={kind === "income" ? "active income" : ""}
+              variant={kind === "income" ? "white" : "subtle"}
+              aria-pressed={kind === "income"}
               onClick={() => {
                 setKind("income");
                 setMethod("account");
@@ -143,68 +147,82 @@ export function EntryForm({
             >
               <ArrowDownLeft size={17} />
               Receita
-            </button>
+            </Button>
           </div>
         )}
-        <label>
-          Descrição
-          <input
-            required
-            maxLength={120}
-            autoComplete="off"
-            autoCapitalize="sentences"
-            enterKeyHint="next"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={
-              kind === "income"
-                ? "Ex.: pagamento do sistema"
-                : "Ex.: supermercado"
+        <TextInput
+          className="cr-field"
+          withAsterisk={false}
+          label={<>Descrição</>}
+          required
+          maxLength={120}
+          autoComplete="off"
+          autoCapitalize="sentences"
+          enterKeyHint="next"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder={
+            kind === "income"
+              ? "Ex.: pagamento do sistema"
+              : "Ex.: supermercado"
+          }
+        />
+        <div className="cr-form-grid">
+          <TextInput
+            className="cr-field"
+            withAsterisk={false}
+            label={
+              <>
+                {method === "card" && count > 1
+                  ? "Valor total da compra (R$)"
+                  : "Valor (R$)"}
+              </>
             }
+            required
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0,00"
           />
-        </label>
-        <div className="form-grid">
-          <label>
-            {method === "card" && count > 1
-              ? "Valor total da compra (R$)"
-              : "Valor (R$)"}
-            <input
-              required
-              inputMode="decimal"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0,00"
-            />
-          </label>
-          <label>
-            {method === "card"
-              ? editing
-                ? "Data na fatura"
-                : "Data na primeira fatura"
-              : "Data prevista"}
-            <input
-              required
-              type="date"
-              min={`${state.settings.initialMonth}-01`}
-              max="2099-12-31"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </label>
+          <TextInput
+            className="cr-field"
+            withAsterisk={false}
+            label={
+              <>
+                {method === "card"
+                  ? editing
+                    ? "Data na fatura"
+                    : "Data na primeira fatura"
+                  : "Data prevista"}
+              </>
+            }
+            required
+            type="date"
+            min={`${state.settings.initialMonth}-01`}
+            max="2099-12-31"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
         </div>
         {editing?.settledOn && (
           <>
-            <label>
-              {kind === "income" ? "Data do recebimento" : "Data do pagamento"}
-              <input
-                type="date"
-                required
-                min={`${state.settings.initialMonth}-01`}
-                max={today}
-                value={confirmedDate}
-                onChange={(e) => setConfirmedDate(e.target.value)}
-              />
-            </label>
+            <TextInput
+              className="cr-field"
+              withAsterisk={false}
+              label={
+                <>
+                  {kind === "income"
+                    ? "Data do recebimento"
+                    : "Data do pagamento"}
+                </>
+              }
+              type="date"
+              required
+              min={`${state.settings.initialMonth}-01`}
+              max={today}
+              value={confirmedDate}
+              onChange={(e) => setConfirmedDate(e.target.value)}
+            />
             <p className="field-note">
               A data prevista organiza o orçamento. A data da movimentação
               informa quando o dinheiro realmente entrou ou saiu.
@@ -226,44 +244,43 @@ export function EntryForm({
           </p>
         )}
         {kind === "expense" && (
-          <div className="form-grid">
-            <label>
-              Forma de pagamento
-              <select
-                value={method}
-                disabled={!!editing}
-                onChange={(e) => {
-                  setMethod(e.target.value as Entry["method"]);
-                  if (e.target.value === "account") setCount(1);
-                }}
-              >
-                <option value="account">Pix, débito ou dinheiro</option>
-                <option value="card">Cartão de crédito</option>
-              </select>
-            </label>
+          <div className="cr-form-grid">
+            <NativeSelect
+              className="cr-field"
+              label={<>Forma de pagamento</>}
+              value={method}
+              disabled={!!editing}
+              onChange={(e) => {
+                setMethod(e.target.value as Entry["method"]);
+                if (e.target.value === "account") setCount(1);
+              }}
+            >
+              <option value="account">Pix, débito ou dinheiro</option>
+              <option value="card">Cartão de crédito</option>
+            </NativeSelect>
             {method === "card" && (
               <div className="person-field">
-                <label>
-                  Responsável
-                  <select
-                    value={owner}
-                    onChange={(e) => setOwner(e.target.value as Entry["owner"])}
-                  >
-                    {personOptions(state.people).map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <NativeSelect
+                  className="cr-field"
+                  label={<>Responsável</>}
+                  value={owner}
+                  onChange={(e) => setOwner(e.target.value as Entry["owner"])}
+                >
+                  {personOptions(state.people).map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </NativeSelect>
                 {onAddPerson && !addingPerson && (
-                  <button
+                  <Button
                     type="button"
-                    className="text-button"
+                    variant="subtle"
+                    className="cr-add-person"
                     onClick={() => setAddingPerson(true)}
                   >
                     Adicionar pessoa
-                  </button>
+                  </Button>
                 )}
                 {onAddPerson && addingPerson && (
                   <PersonCreator
@@ -279,29 +296,27 @@ export function EntryForm({
             )}
           </div>
         )}
-        <div className="form-grid">
-          <label>
-            Categoria
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {[...new Set([...categories, category])].map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Repetição
-            <select
-              value={repeat}
-              disabled={!!editing || count > 1}
-              onChange={(e) => setRepeat(e.target.value as Entry["repeat"])}
-            >
-              <option value="none">Só desta vez</option>
-              <option value="monthly">Todo mês</option>
-            </select>
-          </label>
+        <div className="cr-form-grid">
+          <NativeSelect
+            className="cr-field"
+            label={<>Categoria</>}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            {[...new Set([...categories, category])].map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </NativeSelect>
+          <NativeSelect
+            className="cr-field"
+            label={<>Repetição</>}
+            value={repeat}
+            disabled={!!editing || count > 1}
+            onChange={(e) => setRepeat(e.target.value as Entry["repeat"])}
+          >
+            <option value="none">Só desta vez</option>
+            <option value="monthly">Todo mês</option>
+          </NativeSelect>
         </div>
         {!editing && repeat === "monthly" && (
           <div className="recurrence-start">
@@ -318,9 +333,9 @@ export function EntryForm({
                 ` Depois, uma vez por mês, a partir de ${monthLabel(monthOf(date))}. O valor não entra nos meses anteriores.`}
             </p>
             {addMonths(monthOf(today), 1) >= state.settings.initialMonth && (
-              <button
+              <Button
                 type="button"
-                className="button secondary"
+                variant="default"
                 onClick={() => {
                   setDate(
                     dateInMonth(
@@ -332,7 +347,7 @@ export function EntryForm({
                 }}
               >
                 A partir do próximo mês
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -340,19 +355,18 @@ export function EntryForm({
           kind === "expense" &&
           !editing &&
           repeat === "none" && (
-            <label>
-              Parcelas
-              <select
-                value={count}
-                onChange={(e) => setCount(Number(e.target.value))}
-              >
-                {Array.from({ length: 24 }, (_, i) => (
-                  <option value={i + 1} key={i}>
-                    {i === 0 ? "À vista" : `${i + 1} parcelas`}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <NativeSelect
+              className="cr-field"
+              label={<>Parcelas</>}
+              value={count}
+              onChange={(e) => setCount(Number(e.target.value))}
+            >
+              {Array.from({ length: 24 }, (_, i) => (
+                <option value={i + 1} key={i}>
+                  {i === 0 ? "À vista" : `${i + 1} parcelas`}
+                </option>
+              ))}
+            </NativeSelect>
           )}
         {method === "card" && (
           <p className="field-note">
@@ -369,32 +383,32 @@ export function EntryForm({
           </p>
         )}
         {!editing && method === "account" && (
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={settled}
-              onChange={(e) => setSettled(e.target.checked)}
-            />
-            {kind === "income"
-              ? "Já recebi este valor"
-              : "Já paguei este valor"}
-            <small>Registrar com a data de hoje.</small>
-          </label>
+          <Checkbox
+            className="cr-checkbox"
+            checked={settled}
+            onChange={(e) => setSettled(e.target.checked)}
+            label={
+              kind === "income"
+                ? "Já recebi este valor"
+                : "Já paguei este valor"
+            }
+            description="Registrar com a data de hoje."
+          />
         )}
         {error && (
           <p className="form-error" role="alert">
             {error}
           </p>
         )}
-        <footer className="form-footer">
-          <button className="button secondary" type="button" onClick={onClose}>
+        <footer className="cr-form-footer">
+          <Button variant="default" type="button" onClick={onClose}>
             Cancelar
-          </button>
-          <button className="button primary" type="submit">
+          </Button>
+          <Button variant="filled" type="submit">
             Salvar lançamento
-          </button>
+          </Button>
         </footer>
-      </form>
+      </ValidatedForm>
     </Modal>
   );
 }
@@ -422,27 +436,25 @@ export function BalanceForm({
       subtitle="Informe o valor que aparece agora no aplicativo do seu banco."
       onClose={onClose}
     >
-      <form className="form-content" onSubmit={submit}>
-        <label>
-          Saldo na conta hoje (R$)
-          <input
-            required
-            inputMode="decimal"
-            value={balance}
-            onChange={(event) => setBalance(event.target.value)}
-          />
-        </label>
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={balance.trim().startsWith("-")}
-            onChange={(event) => {
-              const unsigned = balance.trim().replace(/^-/, "").trim() || "0";
-              setBalance(event.target.checked ? `-${unsigned}` : unsigned);
-            }}
-          />
-          Saldo negativo
-        </label>
+      <ValidatedForm className="cr-form" onSubmit={submit}>
+        <TextInput
+          className="cr-field"
+          withAsterisk={false}
+          label={<>Saldo na conta hoje (R$)</>}
+          required
+          inputMode="decimal"
+          value={balance}
+          onChange={(event) => setBalance(event.target.value)}
+        />
+        <Checkbox
+          className="cr-checkbox"
+          checked={balance.trim().startsWith("-")}
+          onChange={(event) => {
+            const unsigned = balance.trim().replace(/^-/, "").trim() || "0";
+            setBalance(event.target.checked ? `-${unsigned}` : unsigned);
+          }}
+          label="Saldo negativo"
+        />
         <p className="field-note">
           O ajuste considera as movimentações já confirmadas e corrige o ponto
           de partida, sem registrar uma nova receita. Você pode informar zero ou
@@ -457,13 +469,15 @@ export function BalanceForm({
             {error}
           </p>
         )}
-        <footer className="form-footer">
-          <button type="button" className="button secondary" onClick={onClose}>
+        <footer className="cr-form-footer">
+          <Button type="button" variant="default" onClick={onClose}>
             Cancelar
-          </button>
-          <button className="button primary">Salvar saldo atual</button>
+          </Button>
+          <Button variant="filled" type="submit">
+            Salvar saldo atual
+          </Button>
         </footer>
-      </form>
+      </ValidatedForm>
     </Modal>
   );
 }
@@ -505,56 +519,56 @@ export function SettingsForm({
       subtitle="Você pode mudar estes detalhes quando precisar."
       onClose={onClose}
     >
-      <form onSubmit={submit} className="form-content">
-        <div className="form-grid">
-          <label>
-            Mês inicial
-            <input
-              type="month"
-              min="2000-01"
-              max="2099-11"
-              required
-              value={month}
-              disabled={hasData}
-              onChange={(e) => setMonth(e.target.value)}
-            />
-          </label>
-          <label>
-            Saldo no início desse mês (R$)
-            <input
-              required
-              inputMode="decimal"
-              value={balance}
-              onChange={(e) => setBalance(e.target.value)}
-            />
-          </label>
+      <ValidatedForm onSubmit={submit} className="cr-form">
+        <div className="cr-form-grid">
+          <TextInput
+            className="cr-field"
+            withAsterisk={false}
+            label={<>Mês inicial</>}
+            type="month"
+            min="2000-01"
+            max="2099-11"
+            required
+            value={month}
+            disabled={hasData}
+            onChange={(e) => setMonth(e.target.value)}
+          />
+          <TextInput
+            className="cr-field"
+            withAsterisk={false}
+            label={<>Saldo no início desse mês (R$)</>}
+            required
+            inputMode="decimal"
+            value={balance}
+            onChange={(e) => setBalance(e.target.value)}
+          />
         </div>
         <p className="field-note">
           <Info size={16} />
           Use o saldo que você tinha antes das entradas e saídas do mês inicial.
           Cadastre os movimentos desse mês para não contar valores duas vezes.
         </p>
-        <div className="form-grid">
-          <label>
-            Nome do cartão
-            <input
-              required
-              maxLength={40}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <label>
-            Dia de vencimento da fatura
-            <input
-              type="number"
-              min="1"
-              max="31"
-              required
-              value={day}
-              onChange={(e) => setDay(Number(e.target.value))}
-            />
-          </label>
+        <div className="cr-form-grid">
+          <TextInput
+            className="cr-field"
+            withAsterisk={false}
+            label={<>Nome do cartão</>}
+            required
+            maxLength={40}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <TextInput
+            className="cr-field"
+            withAsterisk={false}
+            label={<>Dia de vencimento da fatura</>}
+            type="number"
+            min="1"
+            max="31"
+            required
+            value={day}
+            onChange={(e) => setDay(Number(e.target.value))}
+          />
         </div>
         <p className="field-note">
           O repasse pendente da sua mãe é previsto para o vencimento. Confirme o
@@ -565,13 +579,15 @@ export function SettingsForm({
             {error}
           </p>
         )}
-        <footer className="form-footer">
-          <button type="button" className="button secondary" onClick={onClose}>
+        <footer className="cr-form-footer">
+          <Button type="button" variant="default" onClick={onClose}>
             Cancelar
-          </button>
-          <button className="button primary">Salvar configurações</button>
+          </Button>
+          <Button variant="filled" type="submit">
+            Salvar configurações
+          </Button>
         </footer>
-      </form>
+      </ValidatedForm>
     </Modal>
   );
 }
@@ -619,46 +635,46 @@ export function TransferForm({
       }
       onClose={onClose}
     >
-      <form className="form-content" onSubmit={submit}>
-        <label>
-          Valor recebido ou pago (R$)
-          <input
-            inputMode="decimal"
-            required
-            value={amount}
-            disabled={mode === "settle"}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </label>
-        <label>
-          Data da movimentação
-          <input
-            type="date"
-            required
-            min={`${initialMonth}-01`}
-            max={today}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </label>
+      <ValidatedForm className="cr-form" onSubmit={submit}>
+        <TextInput
+          className="cr-field"
+          withAsterisk={false}
+          label={<>Valor recebido ou pago (R$)</>}
+          inputMode="decimal"
+          required
+          value={amount}
+          disabled={mode === "settle"}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+        <TextInput
+          className="cr-field"
+          withAsterisk={false}
+          label={<>Data da movimentação</>}
+          type="date"
+          required
+          min={`${initialMonth}-01`}
+          max={today}
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
         {error && (
           <p role="alert" className="form-error">
             {error}
           </p>
         )}
-        <footer className="form-footer">
-          <button type="button" className="button secondary" onClick={onClose}>
+        <footer className="cr-form-footer">
+          <Button type="button" variant="default" onClick={onClose}>
             Cancelar
-          </button>
-          <button className="button primary">
+          </Button>
+          <Button variant="filled" type="submit">
             {isPayment
               ? "Confirmar pagamento"
               : mode === "reimbursement"
                 ? "Confirmar recebimento"
                 : "Confirmar movimentação"}
-          </button>
+          </Button>
         </footer>
-      </form>
+      </ValidatedForm>
     </Modal>
   );
 }

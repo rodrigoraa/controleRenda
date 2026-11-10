@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "./render";
 import userEvent from "@testing-library/user-event";
 import Application from "../src/Application";
 import { AccountPanel } from "../src/components/AccountPanel";

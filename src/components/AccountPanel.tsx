@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { KeyRound, LogOut, UserRound } from "lucide-react";
+import { Alert, Button, Card, PasswordInput } from "@mantine/core";
+import { Eye, EyeOff, KeyRound, LogOut, UserRound } from "lucide-react";
 import { apiRequest, type AuthUser } from "../lib/api";
+import { ValidatedForm } from "../ui/ValidatedForm";
 import { Modal } from "./Modal";
+import "../ui/auth.css";
 export function AccountPanel({
   user,
   onLogout,
@@ -13,6 +16,9 @@ export function AccountPanel({
     [current, setCurrent] = useState(""),
     [next, setNext] = useState(""),
     [confirmation, setConfirmation] = useState(""),
+    [showCurrent, setShowCurrent] = useState(false),
+    [showNext, setShowNext] = useState(false),
+    [showConfirmation, setShowConfirmation] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
@@ -62,43 +68,62 @@ export function AccountPanel({
     }
   }
   return (
-    <section className="panel settings-panel">
-      <span className="settings-icon">
-        <UserRound size={24} />
-      </span>
-      <h2>Minha conta</h2>
-      <dl>
+    <Card component="section" withBorder className="cr-account">
+      <div className="cr-account-heading">
+        <span className="cr-auth-icon" aria-hidden="true">
+          <UserRound size={23} />
+        </span>
+        <div>
+          <h2>Minha conta</h2>
+          <p>Gerencie seu acesso ao controle financeiro.</p>
+        </div>
+      </div>
+      <dl className="cr-account-details">
         <div>
           <dt>Nome</dt>
           <dd>{user.name}</dd>
         </div>
         <div>
           <dt>E-mail</dt>
-          <dd className="account-email">{user.email}</dd>
+          <dd>{user.email}</dd>
         </div>
       </dl>
-      <div className="backup-actions">
-        <button
-          className="button secondary"
+      <div className="cr-account-actions">
+        <Button
+          variant="default"
+          leftSection={<KeyRound size={16} />}
           onClick={() => {
             setError("");
+            setShowCurrent(false);
+            setShowNext(false);
+            setShowConfirmation(false);
             setOpen(true);
           }}
           disabled={busy}
         >
-          <KeyRound size={16} />
           Alterar senha
-        </button>
-        <button className="button secondary" onClick={logout} disabled={busy}>
-          <LogOut size={16} />
+        </Button>
+        <Button
+          variant="subtle"
+          color="gray"
+          leftSection={<LogOut size={16} />}
+          onClick={logout}
+          disabled={busy}
+          loading={busy && !open}
+          aria-label={busy && !open ? "Saindo…" : "Sair da conta"}
+        >
           Sair da conta
-        </button>
+        </Button>
       </div>
-      {message && <p role="status">{message}</p>}
+      {message && (
+        <Alert role="status" color="green">
+          {message}
+        </Alert>
+      )}
       {error && !open && (
-        <p className="form-error" role="alert">
+        <Alert color="red" role="alert">
           {error}
-        </p>
+        </Alert>
       )}
       {open && (
         <Modal
@@ -113,56 +138,100 @@ export function AccountPanel({
             }
           }}
         >
-          <form className="form-content" onSubmit={submit}>
-            <label>
-              Senha atual
-              <input
-                type="password"
-                autoComplete="current-password"
-                required
-                maxLength={256}
-                value={current}
-                onChange={(e) => setCurrent(e.target.value)}
-              />
-            </label>
-            <label>
-              Nova senha
-              <input
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={12}
-                maxLength={256}
-                value={next}
-                onChange={(e) => setNext(e.target.value)}
-              />
-            </label>
-            <label>
-              Confirme a nova senha
-              <input
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={12}
-                maxLength={256}
-                value={confirmation}
-                onChange={(e) => setConfirmation(e.target.value)}
-              />
-            </label>
-            <p className="field-note">Use pelo menos 12 caracteres.</p>
+          <ValidatedForm
+            className="cr-form cr-account-form"
+            onSubmit={submit}
+            aria-busy={busy}
+          >
+            <PasswordInput
+              className="cr-field cr-password-input"
+              label="Senha atual"
+              autoComplete="current-password"
+              required
+              withAsterisk={false}
+              maxLength={256}
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+              visible={showCurrent}
+              onVisibilityChange={setShowCurrent}
+              visibilityToggleFocusable
+              rightSectionWidth={48}
+              visibilityToggleButtonProps={{
+                "aria-label": showCurrent
+                  ? "Ocultar senha atual"
+                  : "Mostrar senha atual",
+                "aria-pressed": showCurrent,
+              }}
+              visibilityToggleIcon={({ reveal }) =>
+                reveal ? <EyeOff size={18} /> : <Eye size={18} />
+              }
+            />
+            <PasswordInput
+              className="cr-field cr-password-input"
+              label="Nova senha"
+              description="Use pelo menos 12 caracteres."
+              autoComplete="new-password"
+              required
+              withAsterisk={false}
+              minLength={12}
+              maxLength={256}
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              visible={showNext}
+              onVisibilityChange={setShowNext}
+              visibilityToggleFocusable
+              rightSectionWidth={48}
+              visibilityToggleButtonProps={{
+                "aria-label": showNext
+                  ? "Ocultar nova senha"
+                  : "Mostrar nova senha",
+                "aria-pressed": showNext,
+              }}
+              visibilityToggleIcon={({ reveal }) =>
+                reveal ? <EyeOff size={18} /> : <Eye size={18} />
+              }
+            />
+            <PasswordInput
+              className="cr-field cr-password-input"
+              label="Confirme a nova senha"
+              autoComplete="new-password"
+              required
+              withAsterisk={false}
+              minLength={12}
+              maxLength={256}
+              value={confirmation}
+              onChange={(e) => setConfirmation(e.target.value)}
+              visible={showConfirmation}
+              onVisibilityChange={setShowConfirmation}
+              visibilityToggleFocusable
+              rightSectionWidth={48}
+              visibilityToggleButtonProps={{
+                "aria-label": showConfirmation
+                  ? "Ocultar confirmação de senha"
+                  : "Mostrar confirmação de senha",
+                "aria-pressed": showConfirmation,
+              }}
+              visibilityToggleIcon={({ reveal }) =>
+                reveal ? <EyeOff size={18} /> : <Eye size={18} />
+              }
+            />
             {error && (
-              <p className="form-error" role="alert">
+              <Alert color="red" role="alert">
                 {error}
-              </p>
+              </Alert>
             )}
-            <footer className="form-footer">
-              <button className="button primary" disabled={busy}>
-                {busy ? "Salvando…" : "Confirmar nova senha"}
-              </button>
+            <footer className="cr-form-footer">
+              <Button
+                type="submit"
+                loading={busy}
+                aria-label={busy ? "Salvando…" : "Confirmar nova senha"}
+              >
+                Confirmar nova senha
+              </Button>
             </footer>
-          </form>
+          </ValidatedForm>
         </Modal>
       )}
-    </section>
+    </Card>
   );
 }

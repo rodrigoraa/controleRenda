@@ -1,3 +1,4 @@
+import { UnstyledButton } from "@mantine/core";
 import {
   LayoutDashboard,
   ArrowDownLeft,
@@ -5,6 +6,7 @@ import {
   CreditCard,
   Ellipsis,
 } from "lucide-react";
+import "../ui/lists.css";
 type Page = "overview" | "entries" | "card" | "settings";
 export function MobileNav({
   current,
@@ -19,10 +21,11 @@ export function MobileNav({
 }) {
   return (
     <nav
-      className={`mobile-nav ${menuOpen ? "menu-is-open" : ""}`}
+      className={`mobile-nav cr-mobile-nav ${menuOpen ? "menu-is-open" : ""}`}
       aria-label="Navegação do celular"
     >
-      <button
+      <UnstyledButton
+        type="button"
         aria-label="Ir para visão geral"
         aria-current={current === "overview" ? "page" : undefined}
         className={current === "overview" ? "active" : ""}
@@ -30,8 +33,9 @@ export function MobileNav({
       >
         <LayoutDashboard size={22} />
         <span>Início</span>
-      </button>
-      <button
+      </UnstyledButton>
+      <UnstyledButton
+        type="button"
         aria-label="Ver lançamentos"
         aria-current={current === "entries" ? "page" : undefined}
         className={current === "entries" ? "active" : ""}
@@ -39,18 +43,20 @@ export function MobileNav({
       >
         <ArrowDownLeft size={23} />
         <span>Lançamentos</span>
-      </button>
-      <button
+      </UnstyledButton>
+      <UnstyledButton
+        type="button"
         className="mobile-add"
         aria-label="Adicionar lançamento"
         onClick={onAdd}
       >
-        <span className="mobile-add-circle">
+        <span className="cr-mobile-add-circle">
           <Plus size={27} />
         </span>
         <span>Novo</span>
-      </button>
-      <button
+      </UnstyledButton>
+      <UnstyledButton
+        type="button"
         aria-label="Ver cartão compartilhado"
         aria-current={current === "card" ? "page" : undefined}
         className={current === "card" ? "active" : ""}
@@ -58,8 +64,9 @@ export function MobileNav({
       >
         <CreditCard size={23} />
         <span>Cartão</span>
-      </button>
-      <button
+      </UnstyledButton>
+      <UnstyledButton
+        type="button"
         aria-label="Abrir mais opções"
         aria-current={
           ["settings", "recurring"].includes(current) ? "page" : undefined
@@ -69,7 +76,7 @@ export function MobileNav({
       >
         <Ellipsis size={25} />
         <span>Mais</span>
-      </button>
+      </UnstyledButton>
     </nav>
   );
 }

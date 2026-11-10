@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
+  Alert,
+  Button,
+  Card,
+  Loader,
+  PasswordInput,
+  TextInput,
+} from "@mantine/core";
+import {
   ArrowRight,
-  CheckCircle2,
   Eye,
   EyeOff,
-  Leaf,
-  LoaderCircle,
   LockKeyhole,
   RefreshCw,
   ShieldCheck,
   TrendingUp,
-  Wallet,
 } from "lucide-react";
 import App from "./App";
 import {
@@ -24,6 +28,8 @@ import type { BudgetPersistence } from "./lib/persistence";
 import type { State } from "./lib/types";
 import { loadState } from "./lib/storage";
 import { monthOf, localDate } from "./lib/finance";
+import { ValidatedForm } from "./ui/ValidatedForm";
+import "./ui/auth.css";
 type Phase =
   | { kind: "loading" }
   | { kind: "login"; message?: string }
@@ -37,6 +43,11 @@ type Phase =
 export default function Application() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" }),
     [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (phase.kind !== "ready")
+      document.title =
+        phase.kind === "login" ? "Entrar · Controle Renda" : "Controle Renda";
+  }, [phase.kind]);
   const phaseRef = useRef(phase);
   const generation = useRef(0);
   phaseRef.current = phase;
@@ -165,39 +176,52 @@ export default function Application() {
   if (phase.kind === "login")
     return <LoginForm onLogin={login} message={phase.message} />;
   return (
-    <div className="connection-screen">
-      <div className="brand">
-        <span className="brand-icon">
-          <TrendingUp size={25} />
-        </span>
-        <span>
-          controle<span className="brand-weight">renda</span>.
-        </span>
-      </div>
-      {phase.kind === "loading" ? (
-        <>
-          <LoaderCircle className="spinning" size={28} />
-          <h1>Abrindo seu controle…</h1>
-          <p>Conectando aos seus dados com segurança.</p>
-        </>
-      ) : (
-        <>
-          <ShieldCheck size={32} />
-          <h1>Vamos reconectar.</h1>
-          <p role="alert">{phase.message}</p>
-          <button
-            className="button primary"
-            onClick={() =>
-              phase.refreshPage
-                ? window.location.reload()
-                : setAttempt((n) => n + 1)
-            }
-          >
-            <RefreshCw size={16} />
-            {phase.refreshPage ? "Atualizar página" : "Tentar novamente"}
-          </button>
-        </>
-      )}
+    <main
+      className="cr-auth cr-connection"
+      aria-busy={phase.kind === "loading"}
+    >
+      <AuthBrand />
+      <Card withBorder className="cr-connection-card">
+        {phase.kind === "loading" ? (
+          <>
+            <Loader size={30} aria-hidden="true" />
+            <h1>Abrindo seu controle…</h1>
+            <p>Conectando aos seus dados com segurança.</p>
+          </>
+        ) : (
+          <>
+            <span className="cr-auth-icon" aria-hidden="true">
+              <RefreshCw size={23} />
+            </span>
+            <h1>Vamos reconectar.</h1>
+            <Alert color="red" className="cr-auth-feedback" role="alert">
+              {phase.message}
+            </Alert>
+            <Button
+              leftSection={<RefreshCw size={16} />}
+              onClick={() =>
+                phase.refreshPage
+                  ? window.location.reload()
+                  : setAttempt((n) => n + 1)
+              }
+            >
+              {phase.refreshPage ? "Atualizar página" : "Tentar novamente"}
+            </Button>
+          </>
+        )}
+      </Card>
+    </main>
+  );
+}
+function AuthBrand() {
+  return (
+    <div className="cr-auth-brand" aria-label="Controle Renda">
+      <span className="cr-auth-brand-icon" aria-hidden="true">
+        <TrendingUp size={23} />
+      </span>
+      <span>
+        controle<strong>renda</strong>.
+      </span>
     </div>
   );
 }
@@ -226,120 +250,100 @@ function LoginForm({
     }
   }
   return (
-    <div className="auth-shell">
-      <section className="auth-story">
-        <div className="brand">
-          <span className="brand-icon">
-            <TrendingUp size={25} />
-          </span>
-          <span>
-            controle<span className="brand-weight">renda</span>.
-          </span>
-        </div>
-        <div className="auth-story-content">
-          <span className="auth-eyebrow">
-            <Leaf size={17} />
-            MAIS CLAREZA. MENOS PREOCUPAÇÃO.
-          </span>
-          <h1>
-            Seu dinheiro,
-            <br />
-            uma vida
-            <br />
-            <em>mais leve.</em>
-          </h1>
-          <p>
-            Um lugar simples para organizar seus gastos e enxergar o que vem
-            pela frente.
-          </p>
-          <div className="auth-features">
-            <span>
-              <CheckCircle2 size={18} />
-              Seu mês e o próximo sob controle
+    <main className="cr-auth">
+      <header className="cr-auth-header">
+        <AuthBrand />
+        <span className="cr-auth-access">
+          <LockKeyhole size={14} aria-hidden="true" /> Acesso à conta
+        </span>
+      </header>
+      <div className="cr-auth-content">
+        <Card withBorder className="cr-auth-card">
+          <div className="cr-auth-heading">
+            <span className="cr-auth-icon" aria-hidden="true">
+              <LockKeyhole size={23} />
             </span>
-            <span>
-              <CheckCircle2 size={18} />
-              Cada compra com seu responsável
-            </span>
-            <span>
-              <CheckCircle2 size={18} />
-              Seu orçamento em qualquer aparelho
-            </span>
+            <h1>Bem-vindo de volta.</h1>
+            <p>Entre para acompanhar seu orçamento.</p>
           </div>
-        </div>
-        <footer>
-          <ShieldCheck size={15} />
-          Seus dados protegidos, do seu jeito.
-        </footer>
-      </section>
-      <section className="auth-form-section">
-        <form onSubmit={submit} className="auth-form">
-          <span className="auth-lock">
-            <LockKeyhole size={26} />
-          </span>
-          <p className="eyebrow">SEU ESPAÇO FINANCEIRO</p>
-          <h2>Bem-vindo de volta.</h2>
-          <p>Entre para cuidar do seu dinheiro com clareza.</p>
-          {message && <p role="status">{message}</p>}
-          <label>
-            E-mail
-            <input
+          <ValidatedForm
+            onSubmit={submit}
+            className="cr-auth-form"
+            aria-busy={busy}
+          >
+            {message && (
+              <Alert color="blue" role="status" className="cr-auth-feedback">
+                {message}
+              </Alert>
+            )}
+            <TextInput
+              className="cr-field"
+              label="E-mail"
               type="email"
               autoComplete="username"
               required
+              withAsterisk={false}
               maxLength={254}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="voce@exemplo.com"
             />
-          </label>
-          <label>
-            Senha
-            <span className="password-input">
-              <input
-                type={show ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                maxLength={256}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                aria-label={show ? "Ocultar senha" : "Mostrar senha"}
-                onClick={() => setShow(!show)}
-              >
-                {show ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </span>
-          </label>
-          {error && (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          )}
-          <button className="button primary auth-submit" disabled={busy}>
-            {busy ? (
-              <>
-                <LoaderCircle className="spinning" size={18} />
-                Entrando…
-              </>
-            ) : (
-              <>
-                Entrar
-                <ArrowRight size={18} />
-              </>
+            <PasswordInput
+              className="cr-field cr-password-input"
+              label="Senha"
+              autoComplete="current-password"
+              required
+              withAsterisk={false}
+              maxLength={256}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              visible={show}
+              onVisibilityChange={setShow}
+              visibilityToggleFocusable
+              rightSectionWidth={48}
+              visibilityToggleButtonProps={{
+                "aria-label": show ? "Ocultar senha" : "Mostrar senha",
+                "aria-pressed": show,
+              }}
+              visibilityToggleIcon={({ reveal }) =>
+                reveal ? <EyeOff size={18} /> : <Eye size={18} />
+              }
+            />
+            {error && (
+              <Alert color="red" role="alert" className="cr-auth-feedback">
+                {error}
+              </Alert>
             )}
-          </button>
-          <p className="auth-recovery">
-            Esqueceu sua senha? Solicite a redefinição ao administrador.
-          </p>
-          <div className="auth-private">
-            <ShieldCheck size={16} />
+            <Button
+              type="submit"
+              fullWidth
+              loading={busy}
+              aria-label={busy ? "Entrando…" : "Entrar"}
+              rightSection={<ArrowRight size={18} />}
+              className="cr-auth-submit"
+            >
+              Entrar
+            </Button>
+          </ValidatedForm>
+          <div className="cr-auth-private">
+            <ShieldCheck size={16} aria-hidden="true" />
             <span>Acesso privado ao seu controle financeiro.</span>
           </div>
-        </form>
-      </section>
-    </div>
+        </Card>
+        <aside className="cr-auth-help" aria-label="Ajuda para acessar">
+          <section>
+            <h2>Seu orçamento, em qualquer aparelho.</h2>
+            <p>
+              Entre com sua conta para consultar saldos, organizar lançamentos e
+              planejar os próximos meses.
+            </p>
+          </section>
+          <section>
+            <h2>Esqueceu sua senha?</h2>
+            <p>Solicite a redefinição ao administrador.</p>
+          </section>
+        </aside>
+      </div>
+    </main>
   );
 }

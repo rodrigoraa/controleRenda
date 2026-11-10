@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "./render";
 import userEvent from "@testing-library/user-event";
 import App from "../src/App";
 import type { BudgetPersistence } from "../src/lib/persistence";

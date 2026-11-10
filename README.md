@@ -205,3 +205,11 @@ O registro dos testes executados e dos limites de verificação desta entrega es
 ## Uso no celular
 
 Navegação inferior, inclusão rápida, lançamentos em cartões, controles maiores e formulários adaptados à área visível da tela. Veja o [guia e as imagens do celular](docs/uso-no-celular.md).
+
+## Sistema visual
+
+A interface usa **Mantine**, com tema compartilhado, fontes locais, formulários acessíveis e navegação para celular. O resumo separa o dinheiro confirmado das previsões e explica a composição do saldo. No telefone, filtros ficam em **Filtros e ordenação**; listas têm até 20 registros por página.
+
+- [Como usar no celular](docs/uso-no-celular.md)
+- [Revisão da interface e verificação](docs/interface-mantine-2026-11-10.md)
+- [Design e tokens](DESIGN.md) · [Contratos de interação](UX-CONTRACT.md)

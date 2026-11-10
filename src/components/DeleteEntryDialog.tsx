@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from "react";
+import { Button, Radio } from "@mantine/core";
 import type { Occurrence } from "../lib/types";
 import type { DeleteScope } from "../lib/entry-editing";
 import { money, monthLabel, shortDate } from "../lib/finance";
+import { ValidatedForm } from "../ui/ValidatedForm";
 import { Modal } from "./Modal";
 
 export function DeleteEntryDialog({
@@ -28,63 +30,59 @@ export function DeleteEntryDialog({
       subtitle={entry.description}
       onClose={onClose}
     >
-      <form className="form-content" onSubmit={submit}>
-        <fieldset className="delete-options" disabled={saving}>
+      <ValidatedForm className="cr-form" onSubmit={submit} aria-busy={saving}>
+        <fieldset className="cr-delete-options" disabled={saving}>
           <legend>O que deseja excluir?</legend>
-          <div>
-            <label className="checkbox-label">
-              <input
-                type="radio"
-                name="delete-scope"
-                value="single"
-                checked={scope === "single"}
-                onChange={() => setScope("single")}
-              />
-              Somente esta parcela
-            </label>
-            <p className="field-note">
-              Parcela {entry.installment?.index}/{entry.installment?.total}, de{" "}
-              {money(entry.amount)}, em {shortDate(entry.date)} (
-              {monthLabel(entry.month)}).
-            </p>
-          </div>
-          <div>
-            <label className="checkbox-label">
-              <input
-                type="radio"
-                name="delete-scope"
-                value="purchase"
-                checked={scope === "purchase"}
-                onChange={() => setScope("purchase")}
-              />
-              Todas as parcelas desta compra
-            </label>
-            <p className="field-note">
-              Remove a compra inteira e suas {count} parcelas cadastradas, em
-              todos os meses.
-            </p>
-          </div>
+          <Radio
+            name="delete-scope"
+            value="single"
+            checked={scope === "single"}
+            disabled={saving}
+            onChange={() => setScope("single")}
+            label="Somente esta parcela"
+            description={
+              <>
+                Parcela {entry.installment?.index}/{entry.installment?.total},
+                de {money(entry.amount)}, em {shortDate(entry.date)} (
+                {monthLabel(entry.month)}).
+              </>
+            }
+          />
+          <Radio
+            name="delete-scope"
+            value="purchase"
+            checked={scope === "purchase"}
+            disabled={saving}
+            onChange={() => setScope("purchase")}
+            label="Todas as parcelas desta compra"
+            description={
+              <>
+                Remove a compra inteira e suas {count} parcelas cadastradas, em
+                todos os meses.
+              </>
+            }
+          />
         </fieldset>
         <p className="field-note">
           Pagamentos da fatura e repasses já registrados serão mantidos. Excluir
           a compra não desfaz essas movimentações.
         </p>
-        <footer className="form-footer">
-          <button
-            className="button secondary"
+        <footer className="cr-form-footer">
+          <Button
+            variant="default"
             type="button"
             disabled={saving}
             onClick={onClose}
           >
             Cancelar
-          </button>
-          <button className="button primary" disabled={saving}>
+          </Button>
+          <Button type="submit" color="red" loading={saving}>
             {scope === "purchase"
               ? "Excluir todas as parcelas"
               : "Excluir esta parcela"}
-          </button>
+          </Button>
         </footer>
-      </form>
+      </ValidatedForm>
     </Modal>
   );
 }

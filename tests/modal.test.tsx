@@ -1,5 +1,5 @@
 import { it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen } from "./render";
 import userEvent from "@testing-library/user-event";
 import { Modal } from "../src/components/Modal";
 it("coloca o foco dentro da confirmação e mantém a navegação por teclado nela", async () => {

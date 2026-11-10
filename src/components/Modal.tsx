@@ -1,5 +1,13 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
-import { X } from "lucide-react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { Modal as MantineModal } from "@mantine/core";
+import "../ui/forms.css";
+
 export function Modal({
   title,
   subtitle,
@@ -13,101 +21,111 @@ export function Modal({
   onClose: () => void;
   wide?: boolean;
 }) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const ref = useRef<HTMLDivElement>(null),
-    titleId = useId();
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    const getFocusable = () =>
-      Array.from(
-        ref.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea, [tabindex="0"]',
-        ) ?? [],
-      ).filter((e) => !e.hasAttribute("hidden"));
-    const focusable = getFocusable();
-    (
-      focusable.find((e) => e.tagName === "INPUT") ??
-      focusable[0] ??
-      ref.current
-    )?.focus({ preventScroll: true });
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeRef.current();
-      if (e.key === "Tab") {
-        const all = getFocusable(),
-          first = all[0],
-          last = all.at(-1);
-        if (!ref.current?.contains(document.activeElement)) {
-          e.preventDefault();
-          first?.focus();
-          return;
-        }
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last?.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
-      }
+  const [surface, setSurface] = useState<HTMLDivElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const previousFocus = useRef(document.activeElement as HTMLElement | null);
+
+  useLayoutEffect(() => {
+    if (!surface) return;
+    closeRef.current?.focus({ preventScroll: true });
+    let portal: HTMLElement = surface;
+    while (portal.parentElement && portal.parentElement !== document.body)
+      portal = portal.parentElement;
+    const background = Array.from(document.body.children)
+      .filter(
+        (node): node is HTMLElement =>
+          node instanceof HTMLElement &&
+          node !== portal &&
+          !node.hasAttribute("data-portal"),
+      )
+      .map((node) => ({
+        node,
+        inert: node.inert,
+        hidden: node.getAttribute("aria-hidden"),
+      }));
+    background.forEach(({ node }) => {
+      node.inert = true;
+      node.setAttribute("aria-hidden", "true");
+    });
+    return () => {
+      background.forEach(({ node, inert, hidden }) => {
+        node.inert = inert;
+        if (hidden === null) node.removeAttribute("aria-hidden");
+        else node.setAttribute("aria-hidden", hidden);
+      });
+      if (previousFocus.current?.isConnected)
+        previousFocus.current.focus({ preventScroll: true });
     };
-    document.addEventListener("keydown", handler);
+  }, [surface]);
+
+  useEffect(() => {
+    if (!surface) return;
+    const root = surface.closest<HTMLElement>(".cr-modal-root");
     const viewport = window.visualViewport;
     const fitViewport = () => {
-      if (!viewport) return;
-      overlayRef.current?.style.setProperty(
-        "--dialog-height",
-        `${viewport.height}px`,
+      root?.style.setProperty(
+        "--cr-dialog-height",
+        `${viewport?.height ?? window.innerHeight}px`,
       );
-      overlayRef.current?.style.setProperty(
-        "--dialog-top",
-        `${viewport.offsetTop}px`,
+      root?.style.setProperty(
+        "--cr-dialog-top",
+        `${viewport?.offsetTop ?? 0}px`,
+      );
+      root?.toggleAttribute(
+        "data-keyboard-open",
+        !!viewport && window.innerHeight - viewport.height > 120,
       );
     };
     fitViewport();
     viewport?.addEventListener("resize", fitViewport);
     viewport?.addEventListener("scroll", fitViewport);
-    const before = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    window.addEventListener("resize", fitViewport);
     return () => {
-      document.removeEventListener("keydown", handler);
       viewport?.removeEventListener("resize", fitViewport);
       viewport?.removeEventListener("scroll", fitViewport);
-      document.body.style.overflow = before;
-      previous?.focus();
+      window.removeEventListener("resize", fitViewport);
     };
-  }, []);
+  }, [surface]);
+
   return (
-    <div
-      ref={overlayRef}
-      className="modal-overlay"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+    <MantineModal.Root
+      opened
+      onClose={onClose}
+      centered
+      trapFocus
+      returnFocus={false}
+      closeOnEscape
+      closeOnClickOutside
+      lockScroll
+      size={wide ? 650 : 540}
+      zIndex="var(--cr-z-dialog, 600)"
+      transitionProps={{ duration: 0 }}
+      classNames={{
+        root: "cr-modal-root",
+        inner: "cr-modal-inner",
+        content: "cr-modal-content",
+        header: "cr-modal-header",
+        title: "cr-modal-title",
+        body: "cr-modal-body",
+        close: "cr-modal-close",
+        overlay: "cr-modal-overlay",
       }}
     >
-      <div
-        ref={ref}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className={`modal ${wide ? "modal-wide" : ""}`}
-      >
-        <header className="modal-header">
-          <div>
-            <h2 id={titleId}>{title}</h2>
+      <MantineModal.Overlay backgroundOpacity={0.48} blur={3} />
+      <MantineModal.Content ref={setSurface}>
+        <MantineModal.Header>
+          <div className="cr-modal-heading">
+            <MantineModal.Title>{title}</MantineModal.Title>
             {subtitle && <p>{subtitle}</p>}
           </div>
-          <button
-            className="icon-button"
+          <MantineModal.CloseButton
+            ref={closeRef}
+            data-autofocus
             aria-label="Fechar janela"
-            onClick={onClose}
-          >
-            <X size={20} />
-          </button>
-        </header>
-        {children}
-      </div>
-    </div>
+          />
+        </MantineModal.Header>
+        <MantineModal.Body>{children}</MantineModal.Body>
+      </MantineModal.Content>
+    </MantineModal.Root>
   );
 }

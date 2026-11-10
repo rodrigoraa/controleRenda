@@ -1,3 +1,12 @@
+import {
+  Alert,
+  Button,
+  UnstyledButton,
+  TextInput,
+  Portal,
+  Drawer,
+} from "@mantine/core";
+import { OverviewSummary } from "./components/OverviewSummary";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   ArrowDownLeft,
@@ -143,6 +152,7 @@ export default function App({
     defaultTransactionFilters,
   );
   const importRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const rows = useMemo(() => occurrences(state, month), [state, month]);
   const summary = useMemo(
     () => summarize(state, month, today),
@@ -154,7 +164,7 @@ export default function App({
     if (dialog) setNotice(null);
   }, [dialog]);
   useEffect(() => {
-    if (!notice) return;
+    if (!notice || notice.error) return;
     const timeout = setTimeout(() => setNotice(null), 6500);
     return () => clearTimeout(timeout);
   }, [notice]);
@@ -592,95 +602,110 @@ export default function App({
       subtitle: "Ajuste seu controle e cuide dos seus dados.",
     },
   };
+  useEffect(() => {
+    document.title = `${page === "settings" ? "Configurações" : navigation.find((item) => item.id === page)?.label} · Controle Renda`;
+  }, [page]);
+  const navigationContent = (
+    <>
+      <UnstyledButton
+        className="brand"
+        aria-label="Controle Renda — início"
+        onClick={() => navigate("overview")}
+      >
+        <span className="brand-icon">
+          <TrendingUp size={25} strokeWidth={2.4} />
+        </span>
+        <span>
+          controle<span className="brand-weight">renda</span>
+          <span className="brand-dot">.</span>
+        </span>
+      </UnstyledButton>
+      <p className="nav-label">MEU CONTROLE</p>
+      <nav aria-label="Navegação principal">
+        {navigation.map(({ id, label, icon: Icon }) => (
+          <UnstyledButton
+            key={id}
+            aria-label={label}
+            className={`nav-button ${page === id ? "active" : ""}`}
+            aria-current={page === id ? "page" : undefined}
+            onClick={() => navigate(id)}
+          >
+            <Icon size={19} />
+            <span>{label}</span>
+            {id === "card" && unknownCount > 0 && (
+              <span className="nav-count">{unknownCount}</span>
+            )}
+          </UnstyledButton>
+        ))}
+      </nav>
+      <div className="sidebar-bottom">
+        <div className="sidebar-tip">
+          <span className="tip-icon">
+            <Sparkles size={19} />
+          </span>
+          <strong>
+            Pequenos passos.
+            <br />
+            Mais tranquilidade.
+          </strong>
+          <p>O melhor controle é aquele que você consegue manter.</p>
+        </div>
+        <UnstyledButton
+          className={`nav-button ${page === "settings" ? "active" : ""}`}
+          aria-current={page === "settings" ? "page" : undefined}
+          onClick={() => navigate("settings")}
+        >
+          <Settings2 size={19} />
+          Configurações e dados
+        </UnstyledButton>
+        <div className="local-status">
+          <span className="status-dot" />
+          <span role="status">
+            {saving
+              ? "Salvando no servidor…"
+              : connected
+                ? "Seus dados no servidor"
+                : "Sem conexão com o servidor"}
+          </span>
+          <ShieldCheck size={14} />
+        </div>
+      </div>
+    </>
+  );
   return (
     <div className="app-shell" aria-busy={saving}>
       <a href="#main-content" className="skip-link">
         Ir para o conteúdo
       </a>
-      <aside className={`sidebar ${menu ? "mobile-open" : ""}`}>
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate("overview");
-          }}
-        >
-          <span className="brand-icon">
-            <TrendingUp size={25} strokeWidth={2.4} />
-          </span>
-          <span>
-            controle<span className="brand-weight">renda</span>
-            <span className="brand-dot">.</span>
-          </span>
-        </a>
-        <p className="nav-label">MEU CONTROLE</p>
-        <nav aria-label="Navegação principal">
-          {navigation.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              aria-label={label}
-              className={`nav-button ${page === id ? "active" : ""}`}
-              aria-current={page === id ? "page" : undefined}
-              onClick={() => navigate(id)}
-            >
-              <Icon size={19} />
-              <span>{label}</span>
-              {id === "card" && unknownCount > 0 && (
-                <span className="nav-count">{unknownCount}</span>
-              )}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="sidebar-tip">
-            <span className="tip-icon">
-              <Sparkles size={19} />
-            </span>
-            <strong>
-              Pequenos passos.
-              <br />
-              Mais tranquilidade.
-            </strong>
-            <p>O melhor controle é aquele que você consegue manter.</p>
-          </div>
-          <button
-            className={`nav-button ${page === "settings" ? "active" : ""}`}
-            onClick={() => navigate("settings")}
-          >
-            <Settings2 size={19} />
-            Configurações e dados
-          </button>
-          <div className="local-status">
-            <span className="status-dot" />
-            <span role="status">
-              {saving
-                ? "Salvando no servidor…"
-                : connected
-                  ? "Seus dados no servidor"
-                  : "Sem conexão com o servidor"}
-            </span>
-            <ShieldCheck size={14} />
-          </div>
-        </div>
-      </aside>
-      {menu && (
-        <button
-          className="mobile-backdrop"
-          aria-label="Fechar menu"
-          onClick={() => setMenu(false)}
-        />
-      )}
+      <aside className="sidebar">{navigationContent}</aside>
+      <Drawer
+        id="navigation-menu"
+        opened={menu}
+        onClose={() => setMenu(false)}
+        title="Menu"
+        size={300}
+        position="left"
+        closeButtonProps={{ "aria-label": "Fechar menu" }}
+        classNames={{
+          body: "cr-menu-body",
+          header: "cr-menu-header",
+          title: "cr-menu-title",
+        }}
+      >
+        <div className="cr-menu-content">{navigationContent}</div>
+      </Drawer>
       <div className="main-shell">
         <header className="topbar">
           <div className="topbar-left">
-            <button
+            <UnstyledButton
               className="icon-button mobile-menu"
               aria-label="Abrir menu"
+              aria-expanded={menu}
+              aria-controls="navigation-menu"
               onClick={() => setMenu(!menu)}
             >
               <Menu size={22} />
-            </button>
+            </UnstyledButton>
             <span className="breadcrumb">
               <span className="breadcrumb-root">
                 Meu espaço<span>/</span>
@@ -700,7 +725,7 @@ export default function App({
                 timeZone: "UTC",
               }).format(new Date(`${today}T12:00:00Z`))}
             </span>
-            <button
+            <UnstyledButton
               className="icon-button"
               title="Entenda as previsões"
               aria-label="Entenda as previsões"
@@ -715,14 +740,14 @@ export default function App({
               }
             >
               <CircleHelp size={19} />
-            </button>
-            <button
+            </UnstyledButton>
+            <UnstyledButton
               className="profile-avatar"
               aria-label="Minha conta"
               onClick={() => navigate("settings")}
             >
               <UserRound size={18} />
-            </button>
+            </UnstyledButton>
           </div>
         </header>
         {demo && (
@@ -732,9 +757,9 @@ export default function App({
               <strong>Modo de exemplo</strong>
               <span>Valores fictícios, separados dos seus dados.</span>
             </span>
-            <button onClick={endDemo}>
+            <UnstyledButton onClick={endDemo}>
               Sair do exemplo <X size={15} />
-            </button>
+            </UnstyledButton>
           </div>
         )}
         <main id="main-content" className="main-content">
@@ -744,38 +769,38 @@ export default function App({
               <h1>{titles[page].title}</h1>
               <p className="page-subtitle">{titles[page].subtitle}</p>
             </div>
-            <button
+            <Button
               className="button primary add-button"
               onClick={() => setDialog({ type: "entry" })}
             >
               <Plus size={18} />
               Novo lançamento
-            </button>
+            </Button>
           </div>
           {page !== "settings" && (
             <div className="period-toolbar">
               <div className="month-picker">
-                <button
+                <UnstyledButton
                   className="icon-button"
                   aria-label="Mês anterior"
                   disabled={month <= state.settings.initialMonth}
                   onClick={() => setMonth(addMonths(month, -1))}
                 >
                   <ChevronLeft size={17} />
-                </button>
+                </UnstyledButton>
                 <span>{monthLabel(month)}</span>
-                <button
+                <UnstyledButton
                   className="icon-button"
                   aria-label="Próximo mês"
                   disabled={month >= "2099-11"}
                   onClick={() => setMonth(addMonths(month, 1))}
                 >
                   <ChevronRight size={17} />
-                </button>
+                </UnstyledButton>
               </div>
               <div className="period-right">
                 {month !== currentMonth && (
-                  <button
+                  <UnstyledButton
                     className="text-button small"
                     onClick={() =>
                       setMonth(
@@ -786,7 +811,7 @@ export default function App({
                     }
                   >
                     Voltar para hoje
-                  </button>
+                  </UnstyledButton>
                 )}
                 <span className="soft-label">
                   <span className="status-dot" />
@@ -810,153 +835,24 @@ export default function App({
                     </p>
                   </div>
                   <div className="welcome-actions">
-                    <button className="button secondary" onClick={startDemo}>
+                    <Button className="button secondary" onClick={startDemo}>
                       Explorar exemplo
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       className="button primary"
                       onClick={() => setDialog({ type: "balance" })}
                     >
                       Configurar meu saldo <ArrowRight size={16} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
-              <div className="metrics-grid">
-                <section
-                  className={`metric metric-primary ${summary.available < 0 ? "negative-metric" : ""}`}
-                  aria-label="Saldo disponível hoje"
-                >
-                  <div className="metric-top">
-                    <span>Saldo na conta hoje</span>
-                    <span className="metric-icon">
-                      <Wallet size={18} />
-                    </span>
-                  </div>
-                  <strong className="metric-value">
-                    {money(summary.available)}
-                  </strong>
-                  <p className="metric-caption">
-                    Saldo real, com as movimentações confirmadas.
-                  </p>
-                  <button
-                    className="button secondary balance-button"
-                    onClick={() => setDialog({ type: "balance" })}
-                  >
-                    <Pencil size={15} /> Informar saldo de hoje
-                  </button>
-                </section>
-                <section
-                  className="metric"
-                  aria-label="Saldo previsto no fim do mês"
-                >
-                  <div className="metric-top">
-                    <span>Saldo no fim de {monthName}</span>
-                    <span className="metric-icon light">
-                      <Wallet size={18} />
-                    </span>
-                  </div>
-                  <strong
-                    className={`metric-value ${summary.closing < 0 ? "negative" : ""}`}
-                  >
-                    {money(summary.closing)}
-                  </strong>
-                  <p className="metric-caption">
-                    Resultado só de {monthName}:{" "}
-                    <strong>
-                      {summary.monthlyChange >= 0 ? "+" : ""}
-                      {money(summary.monthlyChange)}
-                    </strong>
-                  </p>
-                  <span className="metric-footnote">
-                    O saldo final inclui o dinheiro dos meses anteriores.
-                  </span>
-                </section>
-                <section
-                  className="metric"
-                  aria-label="Previsão do próximo mês"
-                >
-                  <div className="metric-top">
-                    <span>
-                      Saldo no fim de{" "}
-                      {monthLabel(addMonths(month, 1)).split(" de ")[0]}
-                    </span>
-                    <span className="metric-icon light">
-                      <ArrowUpRight size={18} />
-                    </span>
-                  </div>
-                  <strong
-                    className={`metric-value ${summary.nextClosing < 0 ? "negative" : ""}`}
-                  >
-                    {money(summary.nextClosing)}
-                  </strong>
-                  <p className="metric-caption">
-                    Resultado só desse mês:{" "}
-                    <strong>
-                      {summary.nextMonthlyChange >= 0 ? "+" : ""}
-                      {money(summary.nextMonthlyChange)}
-                    </strong>
-                  </p>
-                  <span className="metric-footnote">
-                    Já inclui o saldo final de {monthName}.
-                  </span>
-                </section>
-              </div>
-              <div className="forecast-note">
-                <CircleHelp size={14} />
-                <span>
-                  O saldo de hoje conta apenas dinheiro confirmado. As previsões
-                  somam as entradas e descontam as saídas cadastradas, inclusive
-                  pendentes. Uma renda mensal começa no mês da primeira data
-                  informada.
-                </span>
-              </div>
-              <section
-                className="panel balance-breakdown"
-                aria-label="Composição da previsão"
-              >
-                <div className="panel-heading">
-                  <div>
-                    <h2>Como chegamos ao saldo de {monthName}</h2>
-                    <p>
-                      Entradas incluem receitas e repasses. Saídas incluem
-                      despesas da conta e pagamentos da fatura, confirmados ou
-                      previstos.
-                    </p>
-                  </div>
-                </div>
-                <dl>
-                  <div>
-                    <dt>Saldo trazido dos meses anteriores</dt>
-                    <dd>{money(summary.starting)}</dd>
-                  </div>
-                  <div>
-                    <dt>+ Entradas de {monthName}</dt>
-                    <dd>{money(summary.inflows)}</dd>
-                  </div>
-                  <div>
-                    <dt>− Saídas de {monthName}</dt>
-                    <dd>{money(summary.outflows)}</dd>
-                  </div>
-                  <div className="balance-total">
-                    <dt>= Saldo previsto no fim do mês</dt>
-                    <dd>{money(summary.closing)}</dd>
-                  </div>
-                </dl>
-                <p className="field-note">
-                  Neste mês ainda há {money(summary.pendingIncome)} a receber e{" "}
-                  {money(summary.pendingExpenses)} a pagar. Se algo já
-                  aconteceu, confirme em Lançamentos ou Cartão. Se foi
-                  cadastrado no mês errado, corrija a data ou exclua somente a
-                  ocorrência incorreta.
-                </p>
-                <button
-                  className="text-button"
-                  onClick={() => navigate("entries")}
-                >
-                  Conferir lançamentos <ArrowRight size={15} />
-                </button>
-              </section>
+              <OverviewSummary
+                summary={summary}
+                month={month}
+                onBalance={() => setDialog({ type: "balance" })}
+                onEntries={() => navigate("entries")}
+              />
               {bill.unknown > 0 && (
                 <div className="alert compact">
                   <span className="alert-icon">
@@ -975,7 +871,7 @@ export default function App({
                       da parte da sua mãe.
                     </p>
                   </div>
-                  <button
+                  <UnstyledButton
                     className="text-button"
                     onClick={() => {
                       navigate("card");
@@ -983,7 +879,7 @@ export default function App({
                     }}
                   >
                     Conferir compras <ArrowRight size={15} />
-                  </button>
+                  </UnstyledButton>
                 </div>
               )}
               <div className="dashboard-grid">
@@ -1081,13 +977,13 @@ export default function App({
                     <span>
                       A receber dela <strong>{money(bill.toReceive)}</strong>
                     </span>
-                    <button
+                    <UnstyledButton
                       className="icon-button"
                       aria-label="Ver detalhes do cartão"
                       onClick={() => navigate("card")}
                     >
                       <ArrowRight size={18} />
-                    </button>
+                    </UnstyledButton>
                   </div>
                 </section>
               </div>
@@ -1098,12 +994,12 @@ export default function App({
                       <h2>Lançamentos do mês</h2>
                       <p>Os detalhes que fazem a diferença.</p>
                     </div>
-                    <button
+                    <UnstyledButton
                       className="text-button"
                       onClick={() => navigate("entries")}
                     >
                       Ver todos <ArrowRight size={15} />
-                    </button>
+                    </UnstyledButton>
                   </div>
                   <TransactionsTable
                     people={state.people}
@@ -1244,22 +1140,22 @@ export default function App({
                       dela.
                     </p>
                     <div>
-                      <button
+                      <Button
                         className="button secondary"
                         disabled={bill.toReceive <= 0}
                         onClick={() => setDialog({ type: "reimbursement" })}
                       >
                         <ArrowDownLeft size={16} />
                         Registrar repasse
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         className="button primary"
                         disabled={bill.outstanding <= 0}
                         onClick={() => setDialog({ type: "payment" })}
                       >
                         <Check size={16} />
                         Registrar pagamento
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   {(bill.credit > 0 || bill.received > bill.mother) && (
@@ -1300,15 +1196,31 @@ export default function App({
                       em {monthLabel(month)}
                     </p>
                   </div>
-                  <label className="search-field">
-                    <Search size={17} />
-                    <input
-                      aria-label="Buscar lançamentos"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Buscar lançamento..."
-                    />
-                  </label>
+                  <TextInput
+                    ref={searchRef}
+                    className="search-field"
+                    rightSectionPointerEvents="all"
+                    rightSectionWidth={44}
+                    aria-label="Buscar lançamentos"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Buscar descrição ou categoria"
+                    leftSection={<Search size={18} />}
+                    rightSection={
+                      search ? (
+                        <UnstyledButton
+                          className="search-clear"
+                          aria-label="Limpar busca"
+                          onClick={() => {
+                            setSearch("");
+                            searchRef.current?.focus();
+                          }}
+                        >
+                          <X size={16} />
+                        </UnstyledButton>
+                      ) : null
+                    }
+                  />
                 </div>
                 <div className="filter-bar">
                   {(page === "card"
@@ -1324,13 +1236,14 @@ export default function App({
                         ["expense", "Despesas"],
                       ]
                   ).map(([value, label]) => (
-                    <button
+                    <UnstyledButton
                       key={value}
                       className={`filter-chip ${filter === value ? "active" : ""}`}
+                      aria-pressed={filter === value}
                       onClick={() => setFilter(value)}
                     >
                       {label}
-                    </button>
+                    </UnstyledButton>
                   ))}
                 </div>
                 <TransactionFilters
@@ -1341,6 +1254,7 @@ export default function App({
                     setTransactionFilters(defaultTransactionFilters);
                     setSearch("");
                     setFilter("all");
+                    searchRef.current?.focus();
                   }}
                 />
                 <p className="filtered-total">
@@ -1356,6 +1270,7 @@ export default function App({
                   onAddPerson={(row) =>
                     setDialog({ type: "person", entry: row })
                   }
+                  paginationKey={JSON.stringify([month, listFilters])}
                   items={filteredRows}
                   page={page}
                   search={search}
@@ -1405,7 +1320,7 @@ export default function App({
                           <small>{shortDate(t.date)}</small>
                         </div>
                         <strong>{money(t.amount)}</strong>
-                        <button
+                        <UnstyledButton
                           className="text-button small"
                           onClick={() =>
                             setDialog({
@@ -1432,7 +1347,7 @@ export default function App({
                           }
                         >
                           Desfazer
-                        </button>
+                        </UnstyledButton>
                       </div>
                     ))}
                   {!state.payments.some((t) => t.month === month) &&
@@ -1447,7 +1362,7 @@ export default function App({
           )}
           {page === "settings" && (
             <div className="settings-grid">
-              <button
+              <UnstyledButton
                 className="settings-shortcut"
                 onClick={() => navigate("recurring")}
                 aria-label="Gerenciar recorrências"
@@ -1460,7 +1375,7 @@ export default function App({
                   <small>Suas rendas e contas de todo mês</small>
                 </span>
                 <ArrowRight size={20} />
-              </button>
+              </UnstyledButton>
               <section className="panel settings-panel">
                 <span className="settings-icon">
                   <Settings2 size={24} />
@@ -1470,12 +1385,12 @@ export default function App({
                   O ponto de partida para suas previsões. Para usar o valor que
                   está no banco agora, informe o saldo de hoje.
                 </p>
-                <button
+                <Button
                   className="button secondary"
                   onClick={() => setDialog({ type: "balance" })}
                 >
                   Informar saldo de hoje
-                </button>
+                </Button>
                 <dl>
                   <div>
                     <dt>Mês inicial</dt>
@@ -1494,13 +1409,13 @@ export default function App({
                     <dd>Dia {state.settings.invoiceDay}</dd>
                   </div>
                 </dl>
-                <button
+                <Button
                   className="button secondary"
                   onClick={() => setDialog({ type: "settings" })}
                 >
                   <Pencil size={16} />
                   Editar configurações
-                </button>
+                </Button>
               </section>
               <section className="panel settings-panel">
                 <span className="settings-icon">
@@ -1514,22 +1429,22 @@ export default function App({
                   sempre que precisar.
                 </p>
                 <div className="backup-actions">
-                  <button
+                  <Button
                     className="button primary"
                     disabled={!!demo}
                     onClick={exportBackup}
                   >
                     <Download size={17} />
                     Exportar backup
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     className="button secondary"
                     disabled={!!demo}
                     onClick={() => importRef.current?.click()}
                   >
                     <Upload size={17} />
                     Importar backup
-                  </button>
+                  </Button>
                 </div>
                 <p className="field-note">
                   O backup contém seus dados financeiros. Guarde o arquivo em um
@@ -1545,14 +1460,14 @@ export default function App({
                     Você pode copiá-lo para sua conta. Os dados locais serão
                     preservados.
                   </p>
-                  <button
+                  <Button
                     className="button secondary"
                     onClick={() =>
                       confirmImport(legacyBudget, "O orçamento deste navegador")
                     }
                   >
                     Importar dados deste navegador
-                  </button>
+                  </Button>
                 </section>
               )}
               {account && (
@@ -1569,12 +1484,12 @@ export default function App({
                     separado.
                   </p>
                 </div>
-                <button
+                <Button
                   className="button secondary"
                   onClick={demo ? endDemo : startDemo}
                 >
                   {demo ? "Voltar aos meus dados" : "Abrir exemplo"}
-                </button>
+                </Button>
               </section>
             </div>
           )}
@@ -1605,24 +1520,26 @@ export default function App({
         onChange={importBackup}
       />
       {notice && (
-        <div
-          className={`toast ${notice.error ? "toast-error" : ""}`}
-          role={notice.error ? "alert" : "status"}
-        >
-          {notice.error ? (
-            <TriangleAlert size={19} />
-          ) : (
-            <CheckCircle2 size={19} />
-          )}
-          <span>{notice.text}</span>
-          <button
-            className="icon-button"
-            aria-label="Fechar aviso"
-            onClick={() => setNotice(null)}
+        <Portal>
+          <Alert
+            className="cr-notice"
+            color={notice.error ? "red" : "finance"}
+            variant="filled"
+            role={notice.error ? "alert" : "status"}
+            icon={
+              notice.error ? (
+                <TriangleAlert size={19} />
+              ) : (
+                <CheckCircle2 size={19} />
+              )
+            }
+            withCloseButton
+            closeButtonLabel="Fechar aviso"
+            onClose={() => setNotice(null)}
           >
-            <X size={16} />
-          </button>
-        </div>
+            {notice.text}
+          </Alert>
+        </Portal>
       )}
       {dialog?.type === "entry" && (
         <EntryForm
@@ -1714,18 +1631,18 @@ export default function App({
         <Modal title={dialog.title} onClose={() => setDialog(null)}>
           <div className="form-content">
             <p className="confirm-description">{dialog.description}</p>
-            <footer className="form-footer">
-              <button
+            <footer className="cr-form-footer">
+              <Button
                 className="button secondary"
                 onClick={() => setDialog(null)}
               >
                 Cancelar
-              </button>
-              <button className="button primary" onClick={dialog.action}>
+              </Button>
+              <Button className="button primary" onClick={dialog.action}>
                 {dialog.title === "Como calculamos sua previsão"
                   ? "Entendi"
                   : "Confirmar"}
-              </button>
+              </Button>
             </footer>
           </div>
         </Modal>

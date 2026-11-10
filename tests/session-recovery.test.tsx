@@ -6,7 +6,7 @@ import {
   render,
   screen,
   waitFor,
-} from "@testing-library/react";
+} from "./render";
 import userEvent from "@testing-library/user-event";
 import Application from "../src/Application";
 import { createEmptyState } from "../src/lib/validation";

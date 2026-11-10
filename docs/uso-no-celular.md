@@ -24,6 +24,8 @@ Pagamentos de fatura e repasses já registrados são mantidos: excluir a compra 
 
 ## Filtrar e ordenar lançamentos
 
+No telefone, toque em **Filtros e ordenação** para abrir os controles. O botão informa quantos filtros estão ativos; recolher os controles mantém os filtros aplicados. No computador, eles aparecem abertos.
+
 Os controles podem ser combinados no mês selecionado:
 
 - **Situação:** todas, pendente ou pago/recebido. No crédito, a compra fica pendente enquanto a fatura não estiver integralmente paga.
@@ -31,7 +33,9 @@ Os controles podem ser combinados no mês selecionado:
 - **Ordenar por:** maior valor, menor valor, data mais antiga ou mais recente.
 - **Valor mínimo/máximo:** intervalo inclusivo, em reais. Você pode preencher apenas um dos limites.
 
-A busca e os filtros rápidos de receitas/despesas também podem ser combinados com esses controles. **Total da lista** soma os valores exibidos; **Limpar filtros** restaura a lista completa. O orçamento e as previsões consideram todos os lançamentos cadastrados.
+A busca e os filtros rápidos de receitas/despesas também podem ser combinados com esses controles. **Total da lista** soma todos os resultados filtrados, incluindo as outras páginas; **Limpar filtros** restaura a lista completa. O orçamento e as previsões consideram todos os lançamentos cadastrados.
+
+As listas mostram até **20 lançamentos por página**. Use as setas no fim da lista para avançar; o intervalo informa sua posição. Alterar a busca, os filtros ou o mês reinicia a página.
 
 ## Adicionar outra pessoa
 
@@ -42,6 +46,12 @@ As pessoas ficam salvas no seu orçamento e aparecem nos seletores e filtros dos
 Para corrigir uma data, toque no lápis, altere **Data prevista** ou **Data na fatura** e salve. Ao mudar o mês, o sistema abre o mês de destino. Se o lançamento já foi confirmado, você também pode corrigir a **Data do recebimento** ou **Data do pagamento**, que informa quando o dinheiro realmente entrou ou saiu.
 
 A correção afeta somente o lançamento escolhido: as demais parcelas e as próximas ocorrências mensais mantêm as datas cadastradas. No cartão, pagamentos da fatura e repasses já registrados permanecem no mês original.
+
+## Entender o resumo
+
+O primeiro cartão, **Saldo na conta hoje**, mostra o dinheiro confirmado e oferece **Informar saldo de hoje**. Os dois cartões seguintes são identificados como **Previsão** e mostram o fim do mês selecionado e do próximo mês.
+
+Em **O caminho do seu dinheiro**, acompanhe a conta: saldo trazido + entradas − saídas = saldo final previsto. O resultado de cada mês aparece separado do saldo acumulado. Uma previsão só conhece os gastos e rendas cadastrados.
 
 ## Saldo de hoje e renda a partir do próximo mês
 
@@ -85,7 +95,9 @@ O cadastro de pessoas usa uma nova migração de banco, aplicada automaticamente
 
 Se aparecer **Atualizar página**, use esse botão para carregar a versão atual. Uma falha temporária durante a verificação de acesso mantém a tela aberta; uma sessão realmente expirada ou a mudança de conta pede login com uma mensagem. Veja a [correção de sessão de 10 de novembro](correcao-sessao-2026-11-10.md).
 
-## Verificação da alteração
+## Verificação anterior à migração Mantine
+
+A revisão visual mais recente está descrita em [Interface Mantine](interface-mantine-2026-11-10.md).
 
 - Suíte completa: 173 testes aprovados, incluindo 30 testes com PostgreSQL real.
 - TypeScript e builds da interface e do servidor aprovados.
