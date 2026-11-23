@@ -771,113 +771,89 @@ export default function App({
               onSimulate={() => navigate("simulator")}
             />
           )}
-          {(["overview", "planning", "entries", "card"] as Page[]).includes(
-            page,
-          ) && (
-            <div className="period-toolbar">
-              <div
-                className="month-picker"
-                role="group"
-                aria-label="Mês selecionado"
-              >
-                <UnstyledButton
-                  className="icon-button"
-                  aria-label="Mês anterior"
-                  disabled={month <= state.settings.initialMonth}
-                  onClick={() => setMonth(addMonths(month, -1))}
+          {(() => {
+            const periodToolbar = (
+              <div className="period-toolbar">
+                <div
+                  className="month-picker"
+                  role="group"
+                  aria-label="Mês selecionado"
                 >
-                  <ChevronLeft size={17} />
-                </UnstyledButton>
-                <span aria-live="polite">{monthLabel(month)}</span>
-                <UnstyledButton
-                  className="icon-button"
-                  aria-label="Próximo mês"
-                  disabled={month >= "2099-11"}
-                  onClick={() => setMonth(addMonths(month, 1))}
-                >
-                  <ChevronRight size={17} />
-                </UnstyledButton>
-              </div>
-              <div className="period-right">
-                {month !==
-                  (currentMonth < state.settings.initialMonth
-                    ? state.settings.initialMonth
-                    : currentMonth) && (
                   <UnstyledButton
-                    className="text-button small"
-                    onClick={() =>
-                      setMonth(
-                        currentMonth < state.settings.initialMonth
-                          ? state.settings.initialMonth
-                          : currentMonth,
-                      )
-                    }
+                    className="icon-button"
+                    aria-label="Mês anterior"
+                    disabled={month <= state.settings.initialMonth}
+                    onClick={() => setMonth(addMonths(month, -1))}
                   >
-                    Voltar ao mês atual
+                    <ChevronLeft size={17} />
                   </UnstyledButton>
-                )}
+                  <span aria-live="polite">{monthLabel(month)}</span>
+                  <UnstyledButton
+                    className="icon-button"
+                    aria-label="Próximo mês"
+                    disabled={month >= "2099-11"}
+                    onClick={() => setMonth(addMonths(month, 1))}
+                  >
+                    <ChevronRight size={17} />
+                  </UnstyledButton>
+                </div>
+                <div className="period-right">
+                  {month !==
+                    (currentMonth < state.settings.initialMonth
+                      ? state.settings.initialMonth
+                      : currentMonth) && (
+                    <UnstyledButton
+                      className="text-button small"
+                      onClick={() =>
+                        setMonth(
+                          currentMonth < state.settings.initialMonth
+                            ? state.settings.initialMonth
+                            : currentMonth,
+                        )
+                      }
+                    >
+                      Voltar ao mês atual
+                    </UnstyledButton>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-          {page === "simulator" && (
-            <PurchaseSimulator
-              key={`${demo ? "demo" : "real"}-${state.settings.initialMonth}`}
-              state={state}
-              today={today}
-            />
-          )}
-          {page === "attention" && (
-            <AttentionPage
-              attention={attention}
-              bankPurchases={bankPurchases}
-              bankStatus={bankAttentionStatus}
-              bankListChanged={bank.listChanged}
-              onBankAssign={async (key, owner) => {
-                const originMode = dataModeRef.current;
-                const saved = await bank.assign(key, owner);
-                if (saved && dataModeRef.current === originMode)
-                  setNotice({ text: "Compra identificada." });
-                return saved;
-              }}
-              today={today}
-              people={state.people}
-              saving={saving}
-              onSettle={togglePaid}
-              onAssign={assign}
-              onAddPerson={(row) => setDialog({ type: "person", entry: row })}
-              onTransfer={(type, targetMonth) =>
-                setDialog({ type, month: targetMonth })
-              }
-            />
-          )}
-          {page === "overview" && (
-            <FinancialOverview
-              key={demo ? "demo" : (account?.user.id ?? "local")}
-              state={state}
-              bankRead={bank.view}
-              bankError={bank.failed}
-              summary={summary}
-              month={month}
-              today={today}
-              people={state.people}
-              attentionCount={attention.total + bankPurchases.length}
-              attentionStatus={bankAttentionStatus}
-              onlyBankPurchases={
-                attention.total === 0 && bankPurchases.length > 0
-              }
-              onMonthChange={setMonth}
-              onPlan={() => navigate("planning")}
-              onAttention={() => navigate("attention")}
-              onBalance={() => setDialog({ type: "balance" })}
-              onCard={() => navigate("card")}
-              onEntries={() => navigate("entries")}
-              onDemo={
-                !state.entries.length && !loadError && !demo
-                  ? startDemo
-                  : undefined
-              }
-            />
-          )}
+            );
+            return (
+              <>
+                {(["planning", "entries", "card"] as Page[]).includes(page) &&
+                  periodToolbar}
+                {page === "overview" && (
+                  <FinancialOverview
+                    key={demo ? "demo" : (account?.user.id ?? "local")}
+                    state={state}
+                    monthToolbar={periodToolbar}
+                    bankRead={bank.view}
+                    bankError={bank.failed}
+                    summary={summary}
+                    month={month}
+                    today={today}
+                    people={state.people}
+                    attentionCount={attention.total + bankPurchases.length}
+                    attentionStatus={bankAttentionStatus}
+                    onlyBankPurchases={
+                      attention.total === 0 && bankPurchases.length > 0
+                    }
+                    onMonthChange={setMonth}
+                    onPlan={() => navigate("planning")}
+                    onAttention={() => navigate("attention")}
+                    onBalance={() => setDialog({ type: "balance" })}
+                    onCard={() => navigate("card")}
+                    onEntries={() => navigate("entries")}
+                    onDemo={
+                      !state.entries.length && !loadError && !demo
+                        ? startDemo
+                        : undefined
+                    }
+                  />
+                )}
+              </>
+            );
+          })()}
           {page === "planning" && (
             <section
               className="panel projection-panel plan-projection"

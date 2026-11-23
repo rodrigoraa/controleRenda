@@ -120,113 +120,168 @@
   min-height: 44px;
 }
 
-@media (max-width: 650px) {
-  .financial-overview {
-    grid-template-columns: minmax(0, 1fr);
-  }
+/* =========================================================================
+   1. MEUS CARTÕES E CONTAS (TOPO)
+   ========================================================================= */
+.fo-cards-collection {
+  grid-column: 1 / -1;
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border);
+  border-radius: var(--cr-rounded-lg, 1.25rem);
+  padding: 20px;
 }
 
-.card-settlement {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
-  gap: 12px 20px;
+.fo-cards-collection-header {
   margin-bottom: 16px;
 }
 
-.card-settlement p,
-.card-settlement small,
-.card-settlement span {
+.fo-collection-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--cr-ink);
+}
+
+.fo-cards-collection-header p {
   color: var(--cr-muted);
   font-size: 0.875rem;
+  margin: 4px 0 0;
 }
 
-.card-settlement strong {
-  display: block;
-  font-size: 1.25rem;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+.fo-all-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
 }
 
-.card-settlement-actions {
+.fo-card-box {
+  background: var(--cr-surface);
+  border: 1.5px solid var(--cr-border);
+  border-radius: var(--cr-rounded, 0.75rem);
+  padding: 18px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  grid-column: 1 / -1;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.topbar .local-status {
-  padding: 0;
-  border: 0;
-  margin: 0;
+.fo-card-box.debit {
+  background: linear-gradient(180deg, var(--cr-surface) 0%, rgba(23, 100, 81, 0.05) 100%);
+  border-color: #bfe5d1;
+}
+
+.fo-card-box.credit {
+  background: linear-gradient(180deg, var(--cr-surface) 0%, rgba(99, 102, 241, 0.05) 100%);
+  border-color: #cbd5e1;
+}
+
+.fo-card-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fo-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.fo-type-pill.credit {
+  background-color: #4f46e5;
+}
+
+.fo-nature-label {
   font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--cr-muted);
 }
 
-.monthly-projection > div {
-  border-bottom: 1px solid var(--cr-border);
-  min-height: 44px;
+.fo-card-box-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.monthly-projection > div:last-child {
-  border-bottom: 0;
+.fo-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.05rem;
+  color: var(--cr-ink);
 }
 
-.monthly-projection time {
+.fo-card-title {
+  font-size: 1.05rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.fo-card-meta {
+  color: var(--cr-muted);
+  font-size: 0.8rem;
+}
+
+.fo-card-box-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.fo-amount-tag {
+  font-size: 0.75rem;
+  color: var(--cr-muted);
   text-transform: capitalize;
 }
 
-.fo-cards > section + section,
-.fo-cards > .fo-card-link {
-  border-top: 1px solid var(--cr-border);
-  padding-top: 12px;
+.fo-card-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-family: var(--cr-display);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
-.fo-card-link {
-  width: 100%;
-}
-
-.topbar .local-status[data-offline] .status-dot {
-  background: var(--cr-danger);
-}
-
-.other-repayments {
-  grid-column: 1 / -1;
-  border-top: 1px solid var(--cr-border);
-}
-
-.other-repayments summary {
-  min-height: 44px;
-  padding: 10px 0;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 650;
+.fo-card-value.positive {
   color: var(--cr-primary);
 }
 
-.other-repayments-people {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.fo-card-value.expense {
+  color: var(--cr-danger);
 }
 
-.other-repayments-people .mantine-Button-root {
-  max-width: 100%;
-  height: auto;
-  padding-block: 8px;
+.fo-card-status {
+  margin-top: 4px;
 }
 
-.other-repayments-people .mantine-Button-label {
-  white-space: normal;
-  overflow-wrap: anywhere;
+.fo-card-box-action {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--cr-border);
 }
 
+.fo-card-box-action .text-button {
+  font-size: 0.85rem;
+  color: var(--cr-primary);
+  font-weight: 600;
+}
 
-/* --- Month Strip & Month Previews --- */
+/* =========================================================================
+   2. FILTRO DE MÊS E PREVISÃO MÊS A MÊS
+   ========================================================================= */
 .fo-month-strip-container {
   grid-column: 1 / -1;
   background: var(--cr-surface);
   border: 1px solid var(--cr-border);
   border-radius: var(--cr-rounded-lg, 1.25rem);
-  padding: 16px 20px;
+  padding: 18px 20px;
 }
 
 .fo-month-strip-header {
@@ -280,7 +335,7 @@
 .fo-month-pill.selected {
   border-color: var(--cr-primary);
   background: var(--cr-tint, #f0f7f4);
-  box-shadow: 0 0 0 1px var(--cr-primary);
+  box-shadow: 0 0 0 1.5px var(--cr-primary);
 }
 
 .fo-pill-top {
@@ -327,8 +382,10 @@
   font-weight: 700;
 }
 
-/* --- Selected Month Highlights --- */
-.fo-selected-overview {
+/* =========================================================================
+   3. PREVISÃO PARA O MÊS ATUAL
+   ========================================================================= */
+.fo-forecast-current-month {
   grid-column: 1 / -1;
   background: var(--cr-surface);
   border: 1px solid var(--cr-border);
@@ -336,7 +393,7 @@
   padding: 20px;
 }
 
-.fo-selected-header {
+.fo-current-month-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -345,237 +402,278 @@
   margin-bottom: 16px;
 }
 
-.fo-selected-header h2 {
+.fo-current-month-header h2 {
   font-size: 1.25rem;
   margin: 0;
   text-transform: capitalize;
 }
 
-.fo-selected-header p {
+.fo-current-month-header p {
   color: var(--cr-muted);
   font-size: 0.875rem;
   margin: 4px 0 0;
 }
 
-.fo-metrics-cards {
+.fo-current-month-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
-.fo-metric-card {
+.fo-metric-tile {
+  padding: 16px 20px;
+  border-radius: var(--cr-rounded, 0.75rem);
+  border: 1px solid var(--cr-border);
+  background: var(--cr-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fo-metric-tile.balance {
+  background: var(--cr-tint, #f0f7f4);
+  border-color: #bfe5d1;
+}
+
+.fo-metric-tile.movements {
+  background: var(--cr-surface);
+}
+
+.fo-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fo-tile-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.fo-tile-value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  font-family: var(--cr-display);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.fo-tile-sub {
+  color: var(--cr-muted);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.fo-flow-item.inflows dt {
+  color: var(--cr-primary);
+  font-weight: 600;
+}
+
+.fo-flow-item.outflows dt {
+  color: var(--cr-danger);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   4. PREVISÃO PARA O PRÓXIMO MÊS
+   ========================================================================= */
+.fo-forecast-next-month {
+  grid-column: 1 / -1;
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border);
+  border-radius: var(--cr-rounded-lg, 1.25rem);
+  padding: 20px;
+}
+
+.fo-next-month-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.fo-next-month-header h2 {
+  font-size: 1.25rem;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.fo-next-month-header p {
+  color: var(--cr-muted);
+  font-size: 0.875rem;
+  margin: 4px 0 0;
+}
+
+.fo-next-month-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fo-next-tile {
   padding: 16px;
   border-radius: var(--cr-rounded, 0.75rem);
   border: 1px solid var(--cr-border);
   background: var(--cr-surface);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.fo-metric-card.income {
+.fo-next-tile.income {
   background: var(--cr-tint, #f0f7f4);
-  border-color: #c2e2d5;
+  border-color: #bfe5d1;
 }
 
-.fo-metric-card.expense {
+.fo-next-tile.expense {
   background: #fdf5f5;
   border-color: #f7d4d4;
 }
 
-.fo-metric-card.balance.positive {
+.fo-next-tile.total.positive {
   background: #f4fbf7;
-  border-color: #bfe5d1;
+  border-color: #a7e4c3;
 }
 
-.fo-metric-card.balance.negative {
+.fo-next-tile.total.negative {
   background: #fdf2f2;
   border-color: #f8c3c3;
 }
 
-.fo-metric-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.fo-metric-title {
+.fo-next-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--cr-ink);
 }
 
-.fo-metric-value {
-  font-size: 1.5rem;
+.fo-next-amount {
+  font-size: 1.6rem;
   font-weight: 800;
   font-family: var(--cr-display);
   font-variant-numeric: tabular-nums;
-  margin: 4px 0 2px;
+  line-height: 1.2;
 }
 
-.fo-metric-card.income .fo-metric-value {
+.fo-next-amount.positive {
   color: var(--cr-primary);
 }
 
-.fo-metric-card.expense .fo-metric-value {
+.fo-next-amount.negative {
   color: var(--cr-danger);
 }
 
-.fo-metric-card.balance.negative .fo-metric-value {
-  color: var(--cr-danger);
-}
-
-.fo-metric-card.balance.positive .fo-metric-value {
-  color: var(--cr-primary);
-}
-
-.fo-metric-card small {
+.fo-next-tile small {
   font-size: 0.775rem;
   color: var(--cr-muted);
 }
 
+/* =========================================================================
+   RESPONSIVO
+   ========================================================================= */
 @media (max-width: 650px) {
-  .fo-metrics-cards {
+  .financial-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fo-all-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .fo-current-month-grid {
+    grid-template-columns: 1fr;
+  }
+  .fo-next-month-metrics-grid {
     grid-template-columns: 1fr;
   }
 }
 
-/* --- Visual Credit Card Widget --- */
-.fo-card-section {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.card-settlement {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 12px 20px;
+  margin-bottom: 16px;
 }
 
-.fo-credit-card-widget {
-  background: linear-gradient(135deg, #176451 0%, #0d3d31 100%);
-  color: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 14px rgba(13, 61, 49, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.card-settlement p,
+.card-settlement small,
+.card-settlement span {
+  color: var(--cr-muted);
+  font-size: 0.875rem;
 }
 
-.fo-card-chip-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.card-settlement strong {
+  display: block;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
-.fo-card-brand {
+.card-settlement-actions {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  font-weight: 700;
-  font-size: 1rem;
-  letter-spacing: 0.5px;
+  grid-column: 1 / -1;
 }
 
-.fo-card-due-tag {
-  background: rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(4px);
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
+.topbar .local-status {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  font-size: 0.75rem;
 }
 
-.fo-card-invoice-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.monthly-projection > div {
+  border-bottom: 1px solid var(--cr-border);
+  min-height: 44px;
 }
 
-.fo-card-invoice-label {
-  font-size: 0.8rem;
-  opacity: 0.85;
+.monthly-projection > div:last-child {
+  border-bottom: 0;
+}
+
+.monthly-projection time {
   text-transform: capitalize;
 }
 
-.fo-card-invoice-amount {
-  font-size: 1.85rem;
-  font-weight: 800;
-  font-family: var(--cr-display);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.5px;
+.topbar .local-status[data-offline] .status-dot {
+  background: var(--cr-danger);
 }
 
-.fo-card-invoice-status .status-badge {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
+.other-repayments {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--cr-border);
 }
 
-.status-badge.paid {
-  background: rgba(46, 204, 113, 0.25);
-  color: #7ef1b2;
+.other-repayments summary {
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--cr-primary);
 }
 
-.status-badge.partial {
-  background: rgba(241, 196, 15, 0.25);
-  color: #ffeaa7;
-}
-
-.status-badge.open {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
-
-.status-badge.neutral {
-  background: rgba(255, 255, 255, 0.15);
-  color: #e0e0e0;
-}
-
-.fo-card-breakdown {
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  padding-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fo-breakdown-title {
-  font-size: 0.75rem;
-  opacity: 0.8;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.fo-breakdown-tags {
+.other-repayments-people {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.fo-breakdown-pill {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 0.825rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.other-repayments-people .mantine-Button-root {
+  max-width: 100%;
+  height: auto;
+  padding-block: 8px;
 }
 
-.fo-breakdown-pill small {
-  font-size: 0.75rem;
-  opacity: 0.85;
-}
-
-.fo-breakdown-pill.mother {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.fo-breakdown-pill.unknown {
-  background: rgba(231, 76, 60, 0.3);
-  border-color: rgba(231, 76, 60, 0.4);
+.other-repayments-people .mantine-Button-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
