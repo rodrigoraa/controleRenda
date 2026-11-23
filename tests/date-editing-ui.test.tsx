@@ -29,6 +29,7 @@ it("permite editar a data e abre o mês correto depois de salvar", async () => {
   };
   render(<App today="2026-11-09" persistence={persistence} />);
   const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   await user.click(screen.getByRole("button", { name: "Editar Mercado" }));
   const date = screen.getByLabelText("Data prevista");
   expect(date).toBeEnabled();
@@ -69,6 +70,7 @@ it("permite corrigir a data de recebimento de uma receita já confirmada", async
   };
   render(<App today="2026-11-09" persistence={persistence} />);
   const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   await user.click(screen.getByRole("button", { name: "Editar Salário" }));
   expect(screen.getByLabelText("Data do recebimento")).toHaveValue(
     "2026-11-06",
@@ -112,6 +114,7 @@ it("preserva a data corrigida em outra aba quando um formulário antigo tenta sa
   };
   render(<App today="2026-11-09" persistence={persistence} />);
   const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   await user.click(screen.getByRole("button", { name: "Editar Salário" }));
   await user.clear(screen.getByLabelText("Descrição"));
   await user.type(screen.getByLabelText("Descrição"), "Salário ajustado");

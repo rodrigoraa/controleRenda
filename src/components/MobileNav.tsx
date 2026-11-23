@@ -4,20 +4,23 @@ import {
   ArrowDownLeft,
   Plus,
   CreditCard,
+  Landmark,
   Ellipsis,
 } from "lucide-react";
 import "../ui/lists.css";
-type Page = "overview" | "entries" | "card" | "settings";
+type Page = "overview" | "entries" | "card" | "banks" | "settings";
 export function MobileNav({
   current,
   onNavigate,
   onAdd,
   menuOpen,
+  showBanks = false,
 }: {
   current: string;
   onNavigate: (page: Page) => void;
   onAdd: () => void;
   menuOpen: boolean;
+  showBanks?: boolean;
 }) {
   return (
     <nav
@@ -55,16 +58,29 @@ export function MobileNav({
         </span>
         <span>Novo</span>
       </UnstyledButton>
-      <UnstyledButton
-        type="button"
-        aria-label="Ver cartão compartilhado"
-        aria-current={current === "card" ? "page" : undefined}
-        className={current === "card" ? "active" : ""}
-        onClick={() => onNavigate("card")}
-      >
-        <CreditCard size={23} />
-        <span>Cartão</span>
-      </UnstyledButton>
+      {showBanks ? (
+        <UnstyledButton
+          type="button"
+          aria-label="Ver bancos"
+          aria-current={current === "banks" ? "page" : undefined}
+          className={current === "banks" ? "active" : ""}
+          onClick={() => onNavigate("banks")}
+        >
+          <Landmark size={23} />
+          <span>Bancos</span>
+        </UnstyledButton>
+      ) : (
+        <UnstyledButton
+          type="button"
+          aria-label="Ver cartão compartilhado"
+          aria-current={current === "card" ? "page" : undefined}
+          className={current === "card" ? "active" : ""}
+          onClick={() => onNavigate("card")}
+        >
+          <CreditCard size={23} />
+          <span>Cartão</span>
+        </UnstyledButton>
+      )}
       <UnstyledButton
         type="button"
         aria-label="Abrir mais opções"

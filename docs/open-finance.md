@@ -40,7 +40,7 @@ Com o banco já em execução, recrie somente o aplicativo. Quem usa `cloudflare
 docker compose -f compose.yaml up -d --build --no-deps app
 ```
 
-Entre no Controle Renda com o e-mail configurado e abra **Configurações e dados → Contas e cartões conectados**. O servidor lê os dados disponíveis no MeuPluggy ao iniciar e a cada 15 minutos. O horário do último envio do banco, quando informado pelo provedor, aparece separadamente da hora em que o Controle Renda consultou. A leitura fica em memória. Os dados bancários sincronizados não entram no orçamento nem em seus backups. A tela apresenta o saldo das contas em reais, até 25 movimentações por conta dos últimos 30 dias e até três faturas do cartão Mercado Pago, quando disponíveis.
+Entre no Controle Renda com o e-mail configurado e abra **Bancos**. O servidor lê os dados disponíveis no MeuPluggy ao iniciar e a cada 15 minutos. O horário do último envio do banco, quando informado pelo provedor, aparece separadamente da hora em que o Controle Renda consultou. A consulta dos saldos, faturas e movimentações fica em memória. A tela apresenta o saldo das contas em reais, até 25 movimentações por conta dos últimos 30 dias e até três faturas por cartão, quando o banco disponibiliza esses dados.
 
 Se o titular precisar renovar a autorização, faça isso no MeuPluggy. Para desligar a leitura no Controle Renda, defina `BANK_SYNC_ENABLED=false` e recrie o aplicativo. Para parar o compartilhamento com o provedor, revogue também o consentimento no MeuPluggy ou no banco.
 
@@ -58,6 +58,6 @@ Essa consulta filtra conectores oficiais de cada banco. Ela não verifica a cobe
 
 ## Conciliação com o orçamento
 
-As conexões aparecem em uma consulta separada. Para que os dados também passem a entrar no orçamento, é preciso conciliar transferências entre contas próprias, pagamentos de fatura e lançamentos previstos. Compras de cartão compartilhado podem exigir a seleção do responsável. Essa conciliação não faz parte da consulta automática atual.
+Em **Bancos**, abra o cartão e escolha quem fez cada compra. Você pode marcar **Eu**, **Minha mãe**, **Outra pessoa** ou escolher alguém já cadastrado no orçamento. Use **A identificar** para limpar a marcação. A escolha fica guardada com um identificador derivado, sem salvar novamente a compra. O backup completo do PostgreSQL inclui essas marcações. Os saldos e as compras listados em Bancos continuam separados do orçamento e das previsões.
 
 Referência técnica do catálogo e da autenticação: [SDK oficial da Pluggy](https://github.com/pluggyai/pluggy-node).

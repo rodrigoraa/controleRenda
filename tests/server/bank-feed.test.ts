@@ -83,6 +83,24 @@ it("lê as faturas e movimentações do cartão, sem expor IDs ou dados extras d
                 currencyCode: "BRL",
                 paymentData: { private: true },
               },
+              {
+                id: "fee-1",
+                description: "Anuidade",
+                date: new Date().toISOString(),
+                amount: 10,
+                type: "DEBIT",
+                currencyCode: "BRL",
+                creditCardMetadata: { feeType: "ANNUAL_FEE" },
+              },
+              {
+                id: "credit-1",
+                description: "Crédito rotativo",
+                date: new Date().toISOString(),
+                amount: 16,
+                type: "DEBIT",
+                currencyCode: "BRL",
+                creditCardMetadata: { otherCreditsType: "REVOLVING_CREDIT" },
+              },
             ],
             next: null,
           });
@@ -117,7 +135,14 @@ it("lê as faturas e movimentações do cartão, sem expor IDs ou dados extras d
             kind: "credit",
             balance: null,
             transactions: [
-              { amount: 3550, direction: "DEBIT", description: "Compra" },
+              {
+                amount: 3550,
+                direction: "DEBIT",
+                description: "Compra",
+                purchaseKey: expect.stringMatching(/^[a-f0-9]{64}$/),
+              },
+              { description: "Anuidade" },
+              { description: "Crédito rotativo" },
             ],
             bills: [{ amount: 10025, due: "2026-12-10" }],
           },
@@ -125,6 +150,12 @@ it("lê as faturas e movimentações do cartão, sem expor IDs ou dados extras d
       },
     ],
   });
+  if (!own.enabled) throw new Error("Consulta do titular esperada");
+  expect(
+    own.banks[0].accounts[0].transactions
+      .slice(1)
+      .map(({ purchaseKey }) => purchaseKey),
+  ).toEqual([undefined, undefined]);
   expect(JSON.stringify(own)).not.toMatch(
     /dado-privado|paymentData|chave-transitoria|0945e07c/,
   );

@@ -17,6 +17,12 @@ import {
 } from "./security";
 import { parseBackup } from "../src/lib/validation";
 import type { createBankFeed } from "./bank-feed";
+import {
+  purchaseKeys,
+  savePurchaseOwner,
+  withPurchaseOwners,
+} from "./bank-purchase-owners";
+import type { BankPurchaseOwner } from "../src/lib/bank-feed";
 const loginSchema = z
   .object({
     email: z.string().trim().toLowerCase().email().max(254),
@@ -184,7 +190,37 @@ export async function createServer(
   }
   app.get("/api/banks", async (request) => {
     const user = await requireAccount(request);
-    return bankFeed?.forUser(user.email) ?? { enabled: false };
+    return withPurchaseOwners(
+      pool,
+      user.id,
+      bankFeed?.forUser(user.email) ?? { enabled: false },
+    );
+  });
+  app.put("/api/banks/purchases/:key/owner", async (request) => {
+    const user = await requireAccount(request);
+    const { key } = z
+      .object({ key: z.string().regex(/^[a-f0-9]{64}$/) })
+      .parse(request.params);
+    const { owner } = z
+      .object({
+        owner: z
+          .string()
+          .regex(/^(?:me|mother|other|unknown|person_[a-zA-Z0-9_-]{1,80})$/)
+          .transform((owner) => owner as BankPurchaseOwner),
+      })
+      .strict()
+      .parse(request.body);
+    if (!bankFeed || !purchaseKeys(bankFeed.forUser(user.email)).includes(key))
+      throw new HttpError(
+        404,
+        "Compra indisponível. Atualize a lista de bancos e tente de novo.",
+      );
+    if (!(await savePurchaseOwner(pool, user.id, key, owner)))
+      throw new HttpError(
+        400,
+        "Escolha uma pessoa cadastrada no seu orçamento.",
+      );
+    return { owner };
   });
   app.get("/api/health", async (_request, reply) => {
     try {

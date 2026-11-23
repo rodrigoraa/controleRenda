@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { addDays } from "../src/lib/finance";
 import type {
@@ -12,8 +13,8 @@ const refreshMs = 15 * 60_000;
 const maxAgeMs = 2 * refreshMs;
 const uuid = z.uuid();
 const targets = [
-  { institution: "nubank", kind: "BANK", variable: "PLUGGY_NUBANK_ITEM_ID" },
-  { institution: "bb", kind: "BANK", variable: "PLUGGY_BB_ITEM_ID" },
+  { institution: "nubank", kind: "ALL", variable: "PLUGGY_NUBANK_ITEM_ID" },
+  { institution: "bb", kind: "ALL", variable: "PLUGGY_BB_ITEM_ID" },
   {
     institution: "mercado-pago",
     kind: "CREDIT",
@@ -21,7 +22,7 @@ const targets = [
   },
 ] as const;
 
-type Target = { institution: Institution; kind: "BANK" | "CREDIT"; id: string };
+type Target = { institution: Institution; kind: "ALL" | "CREDIT"; id: string };
 type BankConfig = {
   ownerEmail: string;
   clientId: string;
@@ -74,9 +75,16 @@ const transactionSchema = z.object({
   date: z.string(),
   description: z.string(),
   amount: z.number(),
+  amountInAccountCurrency: z.number().nullish(),
   type: z.enum(["CREDIT", "DEBIT"]),
   status: z.enum(["POSTED", "PENDING"]).nullish(),
   currencyCode: z.string(),
+  creditCardMetadata: z
+    .object({
+      feeType: z.string().nullish(),
+      otherCreditsType: z.string().nullish(),
+    })
+    .nullish(),
 });
 const billSchema = z.object({
   dueDate: z.string(),
@@ -124,6 +132,7 @@ async function request(
 
 async function readTransactions(
   accountId: string,
+  kind: "BANK" | "CREDIT",
   dateFrom: string,
   apiKey: string,
   signal: AbortSignal,
@@ -142,15 +151,18 @@ async function readTransactions(
       const parsed = transactionSchema.safeParse(row);
       if (
         !parsed.success ||
-        (parsed.data.accountId && parsed.data.accountId !== accountId) ||
-        parsed.data.currencyCode !== "BRL"
+        (parsed.data.accountId && parsed.data.accountId !== accountId)
       ) {
         limited = true;
         continue;
       }
       const value = parsed.data;
       const date = value.date.slice(0, 10);
-      const amount = amountInCents(Math.abs(value.amount));
+      const amount = amountInCents(
+        value.currencyCode === "BRL"
+          ? value.amount
+          : value.amountInAccountCurrency,
+      );
       if (!z.iso.date().safeParse(date).success || amount === null) {
         limited = true;
         continue;
@@ -159,9 +171,18 @@ async function readTransactions(
       transactions.set(value.id, {
         date,
         description: value.description.trim().slice(0, 160) || "Movimentação",
-        amount,
+        amount: Math.abs(amount),
         direction: value.type,
         status: value.status ?? null,
+        ...(kind === "CREDIT" &&
+          value.type === "DEBIT" &&
+          !value.creditCardMetadata?.feeType &&
+          !value.creditCardMetadata?.otherCreditsType &&
+          amount !== 0 && {
+            purchaseKey: createHash("sha256")
+              .update(`${accountId}:${value.id}`)
+              .digest("hex"),
+          }),
       });
     }
     if (!result.next) break;
@@ -240,7 +261,8 @@ async function readBank(
       return { ...base, status: "pending" };
     if (!["UPDATED", "PARTIAL_SUCCESS"].includes(item.status))
       return { ...base, status: "unavailable" };
-    const query = new URLSearchParams({ itemId: target.id, type: target.kind });
+    const query = new URLSearchParams({ itemId: target.id });
+    if (target.kind !== "ALL") query.set("type", target.kind);
     const result = pageSchema.parse(
       await request(`/accounts?${query}`, signal, apiKey),
     );
@@ -248,7 +270,7 @@ async function readBank(
       const account = accountSchema.safeParse(row);
       return account.success &&
         account.data.itemId === target.id &&
-        account.data.type === target.kind &&
+        (target.kind === "ALL" || account.data.type === target.kind) &&
         account.data.currencyCode === "BRL"
         ? [account.data]
         : [];
@@ -258,7 +280,7 @@ async function readBank(
     const data = await Promise.all(
       accounts.slice(0, 6).map(async (account): Promise<BankAccount> => {
         const [tx, bills] = await Promise.allSettled([
-          readTransactions(account.id, from, apiKey, signal),
+          readTransactions(account.id, account.type, from, apiKey, signal),
           account.type === "CREDIT"
             ? readBills(account.id, apiKey, signal)
             : Promise.resolve([]),
@@ -318,14 +340,12 @@ export function createBankFeed(config: BankConfig) {
         AbortSignal.timeout(40_000),
       ]);
       try {
-        const auth = z
-          .object({ apiKey: z.string().min(1) })
-          .parse(
-            await request("/auth", signal, undefined, {
-              clientId: config.clientId,
-              clientSecret: config.clientSecret,
-            }),
-          );
+        const auth = z.object({ apiKey: z.string().min(1) }).parse(
+          await request("/auth", signal, undefined, {
+            clientId: config.clientId,
+            clientSecret: config.clientSecret,
+          }),
+        );
         banks = await Promise.all(
           config.items.map((item) =>
             readBank(item, auth.apiKey, signal, new Date()),

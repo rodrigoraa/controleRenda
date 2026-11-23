@@ -23,22 +23,25 @@ it("cadastra uma renda mensal, projeta os dois meses e persiste após reabrir", 
   await user.type(screen.getByLabelText("Valor (R$)"), "1200,00");
   await user.selectOptions(screen.getByLabelText("Repetição"), "monthly");
   await user.click(screen.getByRole("button", { name: "Salvar lançamento" }));
+  await user.click(screen.getByRole("button", { name: "Ver próximos dias" }));
   expect(
-    within(screen.getByRole("region", { name: "Saldo previsto no fim do mês" })).getByText(
-      "R$ 1.200,00",
-    ),
+    within(
+      screen.getByRole("region", { name: "Saldo previsto no fim do mês" }),
+    ).getByText("R$ 1.200,00"),
   ).toBeInTheDocument();
   expect(
     within(
       screen.getByRole("region", { name: "Previsão do próximo mês" }),
     ).getByText("R$ 2.400,00"),
   ).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   await user.click(screen.getByRole("button", { name: "Próximo mês" }));
   expect(
     within(screen.getByRole("table")).getByText("Pagamento do sistema"),
   ).toBeInTheDocument();
   unmount();
   render(<App today="2026-11-06" persistence={makePersistence()} />);
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   expect(
     within(screen.getByRole("table")).getByText("Pagamento do sistema"),
   ).toBeInTheDocument();
@@ -73,7 +76,12 @@ it("mantém a demonstração separada dos dados reais", async () => {
   render(<App today="2026-11-06" persistence={makePersistence()} />);
   await user.click(screen.getByRole("button", { name: "Explorar exemplo" }));
   expect(screen.getByText("Modo de exemplo")).toBeInTheDocument();
-  expect(screen.getByText("Salário")).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
+  expect(
+    within(screen.getByRole("table")).getByRole("button", {
+      name: "Editar Salário",
+    }),
+  ).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Sair do exemplo" }));
   expect(loadState("2026-11").state.entries).toHaveLength(0);
   expect(screen.queryByText("Pagamento do sistema")).not.toBeInTheDocument();

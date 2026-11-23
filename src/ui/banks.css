@@ -1,5 +1,6 @@
 .bank-connections {
   grid-column: 1 / -1;
+  margin-top: 18px;
 }
 .bank-list {
   display: grid;
@@ -59,4 +60,14 @@
 }
 .bank-account small {
   display: block;
+}
+.bank-owner {
+  grid-column: 1 / -1;
+  width: min(100%, 240px);
+}
+.bank-owner select {
+  min-height: 44px;
+}
+.bank-owner small.negative {
+  color: var(--cr-danger);
 }

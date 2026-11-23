@@ -7,12 +7,14 @@ import {
   Drawer,
 } from "@mantine/core";
 import { OverviewSummary } from "./components/OverviewSummary";
+import { Home } from "./components/Home";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
   ArrowRight,
   Calculator,
+  CalendarDays,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -24,6 +26,7 @@ import {
   FlaskConical,
   Heart,
   LayoutDashboard,
+  Landmark,
   Leaf,
   ListTodo,
   Menu,
@@ -33,7 +36,6 @@ import {
   Search,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Trash2,
   TrendingUp,
   Upload,
@@ -75,11 +77,7 @@ import { Modal } from "./components/Modal";
 import { TransactionsTable } from "./components/TransactionsTable";
 import { MobileNav } from "./components/MobileNav";
 import { PurchaseSimulator } from "./components/PurchaseSimulator";
-import {
-  AttentionPage,
-  AttentionPreview,
-  DailyBalance,
-} from "./components/Planning";
+import { AttentionPage, DailyBalance } from "./components/Planning";
 import { collectAttention } from "./lib/attention";
 import { ThemeToggle } from "./ui/theme";
 import { DeleteEntryDialog } from "./components/DeleteEntryDialog";
@@ -98,6 +96,8 @@ import {
 } from "./components/Forms";
 type Page =
   | "overview"
+  | "planning"
+  | "banks"
   | "entries"
   | "card"
   | "recurring"
@@ -123,10 +123,12 @@ function retainReusableDraft(current: Dialog): Dialog {
     : null;
 }
 const navigation: { id: Page; label: string; icon: LucideIcon }[] = [
-  { id: "overview", label: "Visão geral", icon: LayoutDashboard },
-  { id: "attention", label: "Pendências", icon: ListTodo },
+  { id: "overview", label: "Início", icon: LayoutDashboard },
   { id: "entries", label: "Lançamentos", icon: ArrowDownLeft },
+  { id: "banks", label: "Bancos", icon: Landmark },
+  { id: "planning", label: "Planejar", icon: CalendarDays },
   { id: "card", label: "Cartão compartilhado", icon: CreditCard },
+  { id: "attention", label: "Pendências", icon: ListTodo },
   { id: "recurring", label: "Recorrências", icon: Repeat2 },
   { id: "simulator", label: "Simulador", icon: Calculator },
 ];
@@ -294,7 +296,10 @@ export default function App({
     setMenu(false);
     if (
       window.matchMedia?.("(max-width: 900px)").matches ||
-      ((next === "simulator" || next === "attention") && window.scrollY > 0)
+      (["overview", "planning", "banks", "simulator", "attention"].includes(
+        next,
+      ) &&
+        window.scrollY > 0)
     )
       window.scrollTo({ top: 0, behavior: "instant" });
   }
@@ -575,9 +580,6 @@ export default function App({
   const unknownCount = rows.filter(
     (e) => e.method === "card" && e.owner === "unknown",
   ).length;
-  const recentRows = [...rows]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 5);
   function startDemo() {
     if (savingRef.current) {
       setNotice({ text: "Aguarde o salvamento em andamento.", error: true });
@@ -605,8 +607,16 @@ export default function App({
   }
   const titles: Record<Page, { title: string; subtitle: string }> = {
     overview: {
-      title: "Seu dinheiro, com clareza.",
-      subtitle: "Menos planilhas. Mais tranquilidade para o seu mês.",
+      title: "Início",
+      subtitle: "",
+    },
+    planning: {
+      title: "Planejar",
+      subtitle: "Confira os próximos vencimentos e a previsão de cada mês.",
+    },
+    banks: {
+      title: "Bancos",
+      subtitle: "Saldos e movimentações informados pelos bancos conectados.",
     },
     entries: {
       title: "Cada movimento, no seu lugar.",
@@ -655,34 +665,25 @@ export default function App({
       </UnstyledButton>
       <p className="nav-label">MEU CONTROLE</p>
       <nav aria-label="Navegação principal">
-        {navigation.map(({ id, label, icon: Icon }) => (
-          <UnstyledButton
-            key={id}
-            aria-label={label}
-            className={`nav-button ${page === id ? "active" : ""}`}
-            aria-current={page === id ? "page" : undefined}
-            onClick={() => navigate(id)}
-          >
-            <Icon size={19} />
-            <span>{label}</span>
-            {id === "card" && unknownCount > 0 && (
-              <span className="nav-count">{unknownCount}</span>
-            )}
-          </UnstyledButton>
-        ))}
+        {navigation
+          .filter(({ id }) => id !== "banks" || (account && !demo))
+          .map(({ id, label, icon: Icon }) => (
+            <UnstyledButton
+              key={id}
+              aria-label={label}
+              className={`nav-button ${page === id ? "active" : ""}`}
+              aria-current={page === id ? "page" : undefined}
+              onClick={() => navigate(id)}
+            >
+              <Icon size={19} />
+              <span>{label}</span>
+              {id === "card" && unknownCount > 0 && (
+                <span className="nav-count">{unknownCount}</span>
+              )}
+            </UnstyledButton>
+          ))}
       </nav>
       <div className="sidebar-bottom">
-        <div className="sidebar-tip">
-          <span className="tip-icon">
-            <Sparkles size={19} />
-          </span>
-          <strong>
-            Pequenos passos.
-            <br />
-            Mais tranquilidade.
-          </strong>
-          <p>O melhor controle é aquele que você consegue manter.</p>
-        </div>
         <UnstyledButton
           className={`nav-button ${page === "settings" ? "active" : ""}`}
           aria-current={page === "settings" ? "page" : undefined}
@@ -799,69 +800,82 @@ export default function App({
         <main id="main-content" className="main-content">
           <div className="page-heading">
             <div>
-              {page !== "simulator" && page !== "attention" && (
-                <p className="eyebrow">SIMPLICIDADE QUE FAZ DIFERENÇA</p>
-              )}
+              {page !== "overview" &&
+                page !== "planning" &&
+                page !== "banks" &&
+                page !== "simulator" &&
+                page !== "attention" && (
+                  <p className="eyebrow">SIMPLICIDADE QUE FAZ DIFERENÇA</p>
+                )}
               <h1>{titles[page].title}</h1>
-              <p className="page-subtitle">{titles[page].subtitle}</p>
+              {titles[page].subtitle && (
+                <p className="page-subtitle">{titles[page].subtitle}</p>
+              )}
             </div>
-            {page !== "simulator" && page !== "attention" && (
-              <Button
-                className="button primary add-button"
-                onClick={() => setDialog({ type: "entry" })}
-              >
-                <Plus size={18} />
-                Novo lançamento
-              </Button>
-            )}
+            {page !== "banks" &&
+              page !== "simulator" &&
+              page !== "attention" && (
+                <Button
+                  className="button primary add-button"
+                  onClick={() => setDialog({ type: "entry" })}
+                >
+                  <Plus size={18} />
+                  Novo lançamento
+                </Button>
+              )}
           </div>
-          {page !== "settings" &&
-            page !== "simulator" &&
-            page !== "attention" && (
-              <div className="period-toolbar">
-                <div className="month-picker">
-                  <UnstyledButton
-                    className="icon-button"
-                    aria-label="Mês anterior"
-                    disabled={month <= state.settings.initialMonth}
-                    onClick={() => setMonth(addMonths(month, -1))}
-                  >
-                    <ChevronLeft size={17} />
-                  </UnstyledButton>
-                  <span>{monthLabel(month)}</span>
-                  <UnstyledButton
-                    className="icon-button"
-                    aria-label="Próximo mês"
-                    disabled={month >= "2099-11"}
-                    onClick={() => setMonth(addMonths(month, 1))}
-                  >
-                    <ChevronRight size={17} />
-                  </UnstyledButton>
-                </div>
-                <div className="period-right">
-                  {month !== currentMonth && (
-                    <UnstyledButton
-                      className="text-button small"
-                      onClick={() =>
-                        setMonth(
-                          currentMonth < state.settings.initialMonth
-                            ? state.settings.initialMonth
-                            : currentMonth,
-                        )
-                      }
-                    >
-                      Voltar para hoje
-                    </UnstyledButton>
-                  )}
-                  <span className="soft-label">
-                    <span className="status-dot" />
-                    {demo
-                      ? "Exemplo interativo"
-                      : "Atualizado a cada lançamento"}
-                  </span>
-                </div>
+          {page === "planning" && (
+            <DailyBalance
+              state={state}
+              today={today}
+              onSimulate={() => navigate("simulator")}
+            />
+          )}
+          {(["planning", "entries", "card", "recurring"] as Page[]).includes(
+            page,
+          ) && (
+            <div className="period-toolbar">
+              <div className="month-picker">
+                <UnstyledButton
+                  className="icon-button"
+                  aria-label="Mês anterior"
+                  disabled={month <= state.settings.initialMonth}
+                  onClick={() => setMonth(addMonths(month, -1))}
+                >
+                  <ChevronLeft size={17} />
+                </UnstyledButton>
+                <span>{monthLabel(month)}</span>
+                <UnstyledButton
+                  className="icon-button"
+                  aria-label="Próximo mês"
+                  disabled={month >= "2099-11"}
+                  onClick={() => setMonth(addMonths(month, 1))}
+                >
+                  <ChevronRight size={17} />
+                </UnstyledButton>
               </div>
-            )}
+              <div className="period-right">
+                {month !== currentMonth && (
+                  <UnstyledButton
+                    className="text-button small"
+                    onClick={() =>
+                      setMonth(
+                        currentMonth < state.settings.initialMonth
+                          ? state.settings.initialMonth
+                          : currentMonth,
+                      )
+                    }
+                  >
+                    Voltar para hoje
+                  </UnstyledButton>
+                )}
+                <span className="soft-label">
+                  <span className="status-dot" />
+                  {demo ? "Exemplo interativo" : "Atualizado a cada lançamento"}
+                </span>
+              </div>
+            </div>
+          )}
           {page === "simulator" && (
             <PurchaseSimulator
               key={`${demo ? "demo" : "real"}-${state.settings.initialMonth}`}
@@ -884,212 +898,82 @@ export default function App({
             />
           )}
           {page === "overview" && (
+            <Home
+              state={state}
+              today={today}
+              attentionCount={attention.total}
+              onPlan={() => navigate("planning")}
+              onAttention={() => navigate("attention")}
+              onSimulate={() => navigate("simulator")}
+              onBalance={() => setDialog({ type: "balance" })}
+              onDemo={
+                !state.entries.length && !loadError && !demo
+                  ? startDemo
+                  : undefined
+              }
+            />
+          )}
+          {page === "planning" && (
             <>
-              {!state.entries.length && !loadError && (
-                <div className="welcome-card">
-                  <span className="welcome-icon">
-                    <Sparkles size={24} />
-                  </span>
-                  <div>
-                    <h3>Um começo simples para cuidar do seu dinheiro.</h3>
-                    <p>
-                      Informe o saldo da conta hoje e adicione suas rendas. A
-                      gente faz as contas.
-                    </p>
-                  </div>
-                  <div className="welcome-actions">
-                    <Button className="button secondary" onClick={startDemo}>
-                      Explorar exemplo
-                    </Button>
-                    <Button
-                      className="button primary"
-                      onClick={() => setDialog({ type: "balance" })}
-                    >
-                      Configurar meu saldo <ArrowRight size={16} />
-                    </Button>
-                  </div>
-                </div>
-              )}
               <OverviewSummary
                 summary={summary}
                 month={month}
                 onBalance={() => setDialog({ type: "balance" })}
                 onEntries={() => navigate("entries")}
               />
-              <AttentionPreview
-                total={attention.total}
-                onOpen={() => navigate("attention")}
-              />
-              <DailyBalance
-                state={state}
-                today={today}
-                onSimulate={() => navigate("simulator")}
-              />
-              {bill.unknown > 0 && (
-                <div className="alert compact">
-                  <span className="alert-icon">
-                    <Users size={18} />
-                  </span>
-                  <div>
-                    <strong>
-                      {unknownCount}{" "}
-                      {unknownCount === 1
-                        ? "compra precisa"
-                        : "compras precisam"}{" "}
-                      de um responsável
-                    </strong>
-                    <p>
-                      Identifique {money(bill.unknown)} para separar a sua parte
-                      da parte da sua mãe.
-                    </p>
-                  </div>
-                  <UnstyledButton
-                    className="text-button"
-                    onClick={() => {
-                      navigate("card");
-                      setFilter("unknown");
-                    }}
-                  >
-                    Conferir compras <ArrowRight size={15} />
-                  </UnstyledButton>
-                </div>
-              )}
-              <div className="dashboard-grid">
-                <section className="panel projection-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Saldo acumulado nos próximos meses</h2>
-                      <p>Cada mês começa com o saldo final do anterior.</p>
-                    </div>
-                    <span className="chart-legend">
-                      <span />
-                      Saldo acumulado
-                    </span>
-                  </div>
-                  <ProjectionChart state={state} month={month} today={today} />
-                  <div className="flow-summary">
-                    <div>
-                      <span className="flow-icon income">
-                        <ArrowDownLeft size={18} />
-                      </span>
-                      <div>
-                        <small>Receitas de {monthName}</small>
-                        <strong>{money(summary.income)}</strong>
-                      </div>
-                    </div>
-                    <div>
-                      <span className="flow-icon expense">
-                        <ArrowUpRight size={18} />
-                      </span>
-                      <div>
-                        <small>Despesas de {monthName}</small>
-                        <strong>{money(summary.expenses)}</strong>
-                      </div>
-                    </div>
-                    <div className="flow-personal">
-                      <small>Gastos por sua conta</small>
-                      <strong>{money(summary.personalExpenses)}</strong>
-                    </div>
-                  </div>
-                  <p className="chart-footnote">
-                    Despesas incluem a fatura inteira. Gastos por sua conta
-                    incluem compras a identificar.
-                  </p>
-                </section>
-                <section className="panel card-preview-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Cartão compartilhado</h2>
-                      <p>Cada compra com seu responsável.</p>
-                    </div>
-                    <CreditCard size={20} />
-                  </div>
-                  <div className="virtual-card">
-                    <div className="virtual-card-top">
-                      <span>{state.settings.cardName}</span>
-                      <span className="card-circles">
-                        <i />
-                        <i />
-                      </span>
-                    </div>
-                    <span className="virtual-card-label">
-                      Fatura de {monthName}
-                    </span>
-                    <strong>{money(bill.total)}</strong>
-                    <div className="virtual-card-bottom">
-                      <span>
-                        {state.people?.length
-                          ? "CARTÃO COMPARTILHADO"
-                          : "EU + MINHA MÃE"}
-                      </span>
-                      <span>Vence dia {state.settings.invoiceDay}</span>
-                    </div>
-                  </div>
-                  <div className="share-row">
-                    <span>
-                      <span className="person-dot me" />
-                      Sua parte
-                    </span>
-                    <strong>{money(bill.me)}</strong>
-                  </div>
-                  <div className="share-row">
-                    <span>
-                      <span className="person-dot mother" />
-                      Parte da sua mãe
-                    </span>
-                    <strong>{money(bill.mother)}</strong>
-                  </div>
-                  {bill.otherParts.map((part) => (
-                    <div className="share-row" key={part.owner}>
-                      <span>{part.name}</span>
-                      <strong>{money(part.amount)}</strong>
-                    </div>
-                  ))}
-                  <div className="card-panel-bottom">
-                    <span>
-                      A receber dela <strong>{money(bill.toReceive)}</strong>
-                    </span>
-                    <UnstyledButton
-                      className="icon-button"
-                      aria-label="Ver detalhes do cartão"
-                      onClick={() => navigate("card")}
-                    >
-                      <ArrowRight size={18} />
-                    </UnstyledButton>
-                  </div>
-                </section>
-              </div>
-              <section className="panel movements-panel">
+              <section className="panel projection-panel plan-projection">
                 <div className="panel-heading">
                   <div>
-                    <h2>Lançamentos do mês</h2>
-                    <p>Os detalhes que fazem a diferença.</p>
+                    <h2>Saldo acumulado nos próximos meses</h2>
+                    <p>Cada mês começa com o saldo final do anterior.</p>
                   </div>
-                  <UnstyledButton
-                    className="text-button"
-                    onClick={() => navigate("entries")}
-                  >
-                    Ver todos <ArrowRight size={15} />
-                  </UnstyledButton>
+                  <span className="chart-legend">
+                    <span />
+                    Saldo acumulado
+                  </span>
                 </div>
-                <TransactionsTable
-                  people={state.people}
-                  onAddPerson={(row) =>
-                    setDialog({ type: "person", entry: row })
-                  }
-                  items={recentRows}
-                  compact
-                  page={page}
-                  search={search}
-                  filter={hasDetailedFilters ? "filtered" : filter}
-                  onAssign={assign}
-                  onTogglePaid={togglePaid}
-                  onEdit={(row) => setDialog({ type: "entry", editing: row })}
-                  onDelete={deleteRow}
-                  onStop={stopRecurring}
-                  onCreate={() => setDialog({ type: "entry" })}
-                />
+                <ProjectionChart state={state} month={month} today={today} />
+                <div className="flow-summary">
+                  <div>
+                    <span className="flow-icon income">
+                      <ArrowDownLeft size={18} />
+                    </span>
+                    <div>
+                      <small>Receitas de {monthName}</small>
+                      <strong>{money(summary.income)}</strong>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="flow-icon expense">
+                      <ArrowUpRight size={18} />
+                    </span>
+                    <div>
+                      <small>Despesas de {monthName}</small>
+                      <strong>{money(summary.expenses)}</strong>
+                    </div>
+                  </div>
+                  <div className="flow-personal">
+                    <small>Gastos por sua conta</small>
+                    <strong>{money(summary.personalExpenses)}</strong>
+                  </div>
+                </div>
+                <p className="chart-footnote">
+                  Despesas incluem a fatura inteira. Gastos por sua conta
+                  incluem compras a identificar.
+                </p>
               </section>
+            </>
+          )}
+          {page === "banks" && account && !demo && (
+            <>
+              <Button variant="default" onClick={() => navigate("card")}>
+                Abrir cartão do orçamento
+              </Button>
+              <BankConnections
+                key={account.user.id}
+                accountId={account.user.id}
+                people={state.people}
+              />
             </>
           )}
           {(page === "entries" || page === "recurring" || page === "card") && (
@@ -1494,7 +1378,21 @@ export default function App({
               {account && (
                 <AccountPanel user={account.user} onLogout={account.onLogout} />
               )}
-              {account && !demo && <BankConnections key={account.user.id} accountId={account.user.id} />}
+              {account && !demo && (
+                <UnstyledButton
+                  className="settings-shortcut"
+                  onClick={() => navigate("banks")}
+                >
+                  <span className="settings-icon">
+                    <Landmark size={23} />
+                  </span>
+                  <span>
+                    <strong>Bancos</strong>
+                    <small>Saldos, faturas e compras conectadas</small>
+                  </span>
+                  <ArrowRight size={20} />
+                </UnstyledButton>
+              )}
               <section className="panel settings-panel example-settings">
                 <span className="settings-icon">
                   <FlaskConical size={24} />
@@ -1532,6 +1430,7 @@ export default function App({
         onNavigate={navigate}
         onAdd={() => setDialog({ type: "entry" })}
         menuOpen={menu}
+        showBanks={!!account && !demo}
       />
       <input
         ref={importRef}

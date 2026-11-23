@@ -145,6 +145,93 @@ it("expõe a consulta bancária apenas ao titular autenticado da configuração"
   expect(result.headers["cache-control"]).toBe("no-store");
   expect(result.json()).toEqual(ownerView);
 });
+it("guarda quem fez a compra conectada sem alterar o orçamento e rejeita outra sessão ou compra", async () => {
+  const key = "a".repeat(64);
+  const ownerView: BankOverview = {
+    enabled: true,
+    status: "ready",
+    checkedAt: null,
+    banks: [
+      {
+        institution: "mercado-pago",
+        status: "ready",
+        providerUpdatedAt: null,
+        accounts: [
+          {
+            kind: "credit",
+            balance: null,
+            limited: false,
+            bills: [],
+            transactions: [
+              {
+                date: "2026-11-12",
+                description: "Compra conectada",
+                amount: 10000,
+                direction: "DEBIT",
+                status: "POSTED",
+                purchaseKey: key,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const makeApp = () =>
+    createServer(config, pool, {
+      async refresh() {},
+      start() {},
+      stop() {},
+      forUser: (address) =>
+        address === email ? ownerView : { enabled: false },
+    });
+  await app.close();
+  app = await makeApp();
+  const before = await repo.readBudget(firstAccountId);
+  const person = { id: "person_ana", name: "Ana" } as const;
+  await repo.saveBudget(
+    firstAccountId,
+    { ...before.state, people: [person] },
+    before.revision,
+  );
+  const budget = await repo.readBudget(firstAccountId);
+  const ownerCookie = await login();
+  const otherCookie = await login(secondEmail);
+  const path = (value: string) => `/api/banks/purchases/${value}/owner`;
+  const save = (
+    owner: string,
+    purchaseKey = key,
+    session = accountHeaders(ownerCookie),
+  ) =>
+    app.inject({
+      method: "PUT",
+      url: path(purchaseKey),
+      headers: session,
+      payload: { owner },
+    });
+  expect(
+    (await save("mother", key, accountHeaders(otherCookie, secondAccountId)))
+      .statusCode,
+  ).toBe(404);
+  expect((await save("mother", "b".repeat(64))).statusCode).toBe(404);
+  expect((await save("person_alheia")).statusCode).toBe(400);
+  expect((await save("mother")).json()).toEqual({ owner: "mother" });
+  expect((await save("other")).json()).toEqual({ owner: "other" });
+  expect((await save(person.id)).json()).toEqual({ owner: person.id });
+  await app.close();
+  app = await makeApp();
+  const read = async () =>
+    (
+      await app.inject({
+        url: "/api/banks",
+        headers: accountHeaders(ownerCookie),
+      })
+    ).json().banks[0].accounts[0].transactions[0];
+  expect(await read()).toMatchObject({ owner: person.id });
+  expect((await save("unknown")).statusCode).toBe(200);
+  expect(await read()).toMatchObject({ owner: "unknown" });
+  expect(await repo.readBudget(firstAccountId)).toEqual(budget);
+});
 it("autentica com cookie seguro e não retorna hash de senha", async () => {
   const response = await app.inject({
     method: "POST",

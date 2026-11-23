@@ -1,4 +1,7 @@
+import type { Owner } from "./types";
+
 export type Institution = "nubank" | "bb" | "mercado-pago";
+export type BankPurchaseOwner = Owner | "other";
 
 export const bankNames: Record<Institution, string> = {
   nubank: "Nubank",
@@ -15,6 +18,8 @@ export type BankAccount = {
     amount: number;
     direction: "CREDIT" | "DEBIT";
     status: "PENDING" | "POSTED" | null;
+    purchaseKey?: string;
+    owner?: BankPurchaseOwner;
   }[];
   bills: { due: string; amount: number }[];
   limited: boolean;

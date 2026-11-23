@@ -228,6 +228,15 @@ export function projectDailyBalance(
     });
   return { start, starting, lowest, days };
 }
+export function forecastNext30Days(state: State, today: string) {
+  const start =
+    today < `${state.settings.initialMonth}-01`
+      ? `${state.settings.initialMonth}-01`
+      : today;
+  const through = addDays(start, 29);
+  return { ...projectDailyBalance(state, today, through), through };
+}
+
 export function summarize(state: State, month: string, today: string): Summary {
   const events = cashEvents(
     state,

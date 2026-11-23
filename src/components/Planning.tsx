@@ -8,11 +8,10 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import {
-  addDays,
   dateLabel,
+  forecastNext30Days,
   money,
   monthLabel,
-  projectDailyBalance,
 } from "../lib/finance";
 import type { collectAttention } from "../lib/attention";
 import type { Entry, Occurrence, State } from "../lib/types";
@@ -30,15 +29,8 @@ export function DailyBalance({
   today: string;
   onSimulate: () => void;
 }) {
-  const start =
-    today < `${state.settings.initialMonth}-01`
-      ? `${state.settings.initialMonth}-01`
-      : today;
-  const through = addDays(start, 29);
-  const plan = useMemo(
-    () => projectDailyBalance(state, today, through),
-    [state, today, through],
-  );
+  const plan = useMemo(() => forecastNext30Days(state, today), [state, today]);
+  const { start, through } = plan;
   const [limit, setLimit] = useState(batch);
   return (
     <section

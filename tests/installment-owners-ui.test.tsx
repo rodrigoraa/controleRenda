@@ -55,9 +55,7 @@ it("cadastra dez parcelas da mãe começando em dezembro e mostra janeiro com o 
   await user.click(screen.getByRole("button", { name: "Salvar lançamento" }));
   expect(read().entries).toHaveLength(10);
   expect(read().entries.every((e) => e.owner === "mother")).toBe(true);
-  await user.click(
-    screen.getByRole("button", { name: "Lançamentos" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   await user.click(screen.getByRole("button", { name: "Próximo mês" }));
   expect(
     screen.getByRole("combobox", { name: "Responsável por Compra parcelada" }),
@@ -80,9 +78,7 @@ it("corrige janeiro e as demais parcelas de uma compra antiga ao selecionar Minh
   const { unmount } = render(
     <App today="2026-12-09" persistence={persistence} />,
   );
-  await user.click(
-    screen.getByRole("button", { name: "Lançamentos" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   expect(
     screen.getByRole("combobox", { name: "Responsável por Compra parcelada" }),
   ).toHaveValue("mother");
@@ -106,6 +102,7 @@ it("corrige janeiro e as demais parcelas de uma compra antiga ao selecionar Minh
       }}
     />,
   );
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   expect(
     screen.getByRole("combobox", { name: "Responsável por Compra parcelada" }),
   ).toHaveValue("mother");
@@ -114,6 +111,7 @@ it("trocar responsável no lápis propaga às parcelas sem propagar o valor edit
   const { persistence, read } = persisted(existing());
   const user = userEvent.setup();
   render(<App today="2026-12-09" persistence={persistence} />);
+  await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   await user.click(
     screen.getByRole("button", { name: "Editar Compra parcelada" }),
   );
