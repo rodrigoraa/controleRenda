@@ -74,7 +74,7 @@ export function FinancialOverview({
 }) {
   const currentMonth = monthOf(today);
   const initialMonth = state.settings.initialMonth;
-  const nextMonth = addMonths(currentMonth, 1);
+  const nextMonth = addMonths(month, 1);
 
   // Month previews for timeline strip (options of months)
   const monthList = useMemo(() => {
@@ -233,7 +233,7 @@ export function FinancialOverview({
     for (const { kind } of accounts) counts[kind]++;
 
     const positions = { credit: 0, checking: 0, savings: 0 };
-    return accounts.map((account, index) => {
+    const details = accounts.map((account, index) => {
       const { kind } = account;
       const isCredit = kind === "credit";
       const position = ++positions[kind];
@@ -249,6 +249,7 @@ export function FinancialOverview({
         : null;
       return {
         id: `${institution}-${index}`,
+        kind,
         name: title + suffix,
         amount: isCredit ? billedAmount : account.balance,
         isCredit,
@@ -261,6 +262,17 @@ export function FinancialOverview({
         due: bills.length === 1 ? bills[0].due : null,
       };
     });
+    const hasPair = counts.checking === 1 && counts.credit === 1;
+    const standalone = details
+      .filter(({ kind }) => !hasPair || kind === "savings")
+      .map((detail) => ({ id: detail.id, name: detail.name, details: [detail] }));
+
+    if (!hasPair) return standalone;
+
+    const pair = details
+      .filter(({ kind }) => kind !== "savings")
+      .sort((a, b) => Number(a.isCredit) - Number(b.isCredit));
+    return [{ id: institution, name, details: pair }, ...standalone];
   });
 
   return (
@@ -352,52 +364,69 @@ export function FinancialOverview({
               </UnstyledButton>
             </div>
           </section>
-          {/* Cards adicionais se houver bancos conectados (Nubank, BB, etc) */}
-          {connectedCards.map((c) => (
-            <section
-              key={c.id}
-              aria-labelledby={`fo-card-${c.id}`}
-              className={`fo-card-box ${c.isCredit ? "credit" : "debit"}`}
-            >
-              <div className="fo-card-box-header">
-                <Badge
-                  variant="filled"
-                  color={c.isCredit ? "indigo" : "teal"}
-                  size="sm"
-                  className="fo-type-pill"
-                >
-                  {c.isCredit ? (
-                    <CreditCard size={13} aria-hidden="true" />
-                  ) : (
-                    <Wallet size={13} aria-hidden="true" />
-                  )}
-                  {c.isCredit ? " CRÉDITO" : " DÉBITO"}
-                </Badge>
-                <span className="fo-nature-label">
-                  {c.isCredit ? "DESPESAS DA FATURA" : "SALDO EM CONTA"}
-                </span>
-              </div>
-              <div className="fo-card-box-body">
+          {connectedCards.map((card) => {
+            const combined = card.details.length > 1;
+            const creditOnly = !combined && card.details[0].isCredit;
+            const variant = combined ? "combined" : creditOnly ? "credit" : "debit";
+
+            return (
+              <section
+                key={card.id}
+                aria-labelledby={`fo-card-${card.id}`}
+                className={`fo-card-box ${variant}`}
+              >
                 <div className="fo-card-title-row">
-                  {c.isCredit ? <CreditCard size={18} /> : <Landmark size={18} />}
-                  <h3 id={`fo-card-${c.id}`} className="fo-card-subheading">{c.name}</h3>
+                  {creditOnly ? (
+                    <CreditCard size={18} aria-hidden="true" />
+                  ) : (
+                    <Landmark size={18} aria-hidden="true" />
+                  )}
+                  <h3 id={`fo-card-${card.id}`} className="fo-card-title">
+                    {card.name}
+                  </h3>
                 </div>
-                {c.due && (
-                  <small className="fo-card-meta">Vencimento em {dateLabel(c.due)}</small>
-                )}
-              </div>
-              <div className="fo-card-box-amount">
-                <span className="fo-amount-tag">{c.amountLabel}</span>
-                {c.amount === null ? (
-                  <strong className="fo-card-meta">{c.emptyLabel}</strong>
-                ) : (
-                  <strong className={`fo-card-value ${c.isCredit || c.amount < 0 ? "expense" : "positive"}`}>
-                    {money(c.amount)}
-                  </strong>
-                )}
-              </div>
-            </section>
-          ))}
+                {card.details.map((detail) => (
+                  <div key={detail.id} className="fo-connected-card-detail">
+                    <div className="fo-card-box-header">
+                      <Badge
+                        variant="filled"
+                        color={detail.isCredit ? "indigo" : "teal"}
+                        size="sm"
+                        className="fo-type-pill"
+                      >
+                        {detail.isCredit ? (
+                          <CreditCard size={13} aria-hidden="true" />
+                        ) : (
+                          <Wallet size={13} aria-hidden="true" />
+                        )}
+                        {detail.isCredit ? " CRÉDITO" : " DÉBITO"}
+                      </Badge>
+                      <span className="fo-nature-label">
+                        {detail.isCredit ? "DESPESAS DA FATURA" : "SALDO EM CONTA"}
+                      </span>
+                    </div>
+                    <div className="fo-card-box-amount">
+                      <span className="fo-amount-tag">{detail.amountLabel}</span>
+                      {detail.amount === null ? (
+                        <strong className="fo-card-meta">{detail.emptyLabel}</strong>
+                      ) : (
+                        <strong
+                          className={`fo-card-value ${detail.isCredit || detail.amount < 0 ? "expense" : "positive"}`}
+                        >
+                          {money(detail.amount)}
+                        </strong>
+                      )}
+                      {detail.due && (
+                        <small className="fo-card-meta">
+                          Vencimento em {dateLabel(detail.due)}
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </section>
+            );
+          })}
         </div>
       </section>
 

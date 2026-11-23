@@ -8,7 +8,7 @@ import type { Entry } from "../src/lib/types";
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("mantém os resumos de hoje e do próximo mês ao trocar o mês da fatura", async () => {
+it("mantém o resumo de hoje e atualiza a previsão para o mês seguinte ao selecionado", async () => {
   const state = createEmptyState("2026-11");
   state.settings.openingBalance = 50000;
   state.people = [{ id: "person_ana", name: "Ana" }];
@@ -41,6 +41,8 @@ it("mantém os resumos de hoje e do próximo mês ao trocar o mês da fatura", a
       method: "card",
       owner: "person_ana",
     }),
+    entry({ id: "Bônus", date: "2027-01-12", kind: "income", amount: 25001 }),
+    entry({ id: "Anuidade", date: "2027-01-20", amount: 4511 }),
   ];
   state.settled["Salário:2026-11"] = { date: "2026-11-07" };
   state.settled["Luz:2026-11"] = { date: "2026-11-08" };
@@ -74,15 +76,21 @@ it("mantém os resumos de hoje e do próximo mês ao trocar o mês da fatura", a
   expect(card).toHaveTextContent("Minha mãe");
   expect(card).toHaveTextContent("Ana");
   expect(forecast).toHaveTextContent("dezembro de 2026");
+  const forecastBalance = within(forecast).getByRole("group", {
+    name: "Saldo previsto no fim do mês",
+  });
+  expect(forecastBalance).toHaveTextContent("R$ 1.920,00");
   await user.click(screen.getByRole("button", { name: "Próximo mês" }));
   expect(balance).toHaveTextContent("R$ 1.380,00");
   expect(flow).toHaveTextContent("R$ 1.000,00");
   expect(flow).toHaveTextContent("R$ 120,00");
   expect(card).toHaveTextContent("R$ 0,00");
-  expect(forecast).toHaveTextContent("dezembro de 2026");
+  expect(forecast).toHaveTextContent("janeiro de 2027");
   expect(forecast).toHaveTextContent("O que vai entrar");
+  expect(forecast).toHaveTextContent("R$ 1.250,01");
   expect(forecast).toHaveTextContent("O que vai sair");
-  expect(forecast).toHaveTextContent("Saldo previsto no fim do mês");
+  expect(forecast).toHaveTextContent("R$ 45,11");
+  expect(forecastBalance).toHaveTextContent("R$ 3.124,90");
 
   await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   await user.click(screen.getByRole("button", { name: "Voltar ao mês atual" }));
@@ -149,4 +157,51 @@ it("mostra cada cartão conectado mesmo sem fatura e reúne faturas do mesmo car
   await user.click(screen.getByRole("button", { name: "Próximo mês" }));
   expect(first).toHaveTextContent("Sem fatura no mês");
   expect(second).toHaveTextContent("Sem fatura no mês");
+});
+
+it("mostra débito e crédito do mesmo banco juntos quando há um de cada", async () => {
+  const common = { limited: false, transactions: [] };
+  const view: BankOverview = {
+    enabled: true,
+    status: "ready",
+    checkedAt: null,
+    banks: [{
+      institution: "nubank",
+      status: "ready",
+      providerUpdatedAt: null,
+      accounts: [
+        { ...common, kind: "checking", balance: 144, bills: [] },
+        {
+          ...common,
+          kind: "credit",
+          balance: null,
+          bills: [{ due: "2026-11-13", amount: 42503 }],
+        },
+      ],
+    }],
+  };
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json(view)));
+  const initial = { state: createEmptyState("2026-11"), snapshot: "0", error: null };
+  const user = userEvent.setup();
+  render(
+    <App
+      today="2026-11-10"
+      account={{
+        user: { id: "account-id", name: "Rodrigo", email: "rodrigo@example.test" },
+        onLogout: async () => {},
+      }}
+      persistence={{ initial, load: async () => initial, save: async () => initial }}
+    />,
+  );
+
+  const nubank = await screen.findByRole("region", { name: /^Nubank$/ });
+  expect(nubank).toHaveTextContent("DÉBITO");
+  expect(nubank).toHaveTextContent("R$ 1,44");
+  expect(nubank).toHaveTextContent("CRÉDITO");
+  expect(nubank).toHaveTextContent("R$ 425,03");
+  expect(screen.queryByRole("region", { name: "Nubank (Conta corrente)" })).toBeNull();
+
+  await user.click(screen.getByRole("button", { name: "Próximo mês" }));
+  expect(nubank).toHaveTextContent("R$ 1,44");
+  expect(nubank).toHaveTextContent("Sem fatura no mês");
 });

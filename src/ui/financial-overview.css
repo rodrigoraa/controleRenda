@@ -178,6 +178,20 @@
   border-color: #cbd5e1;
 }
 
+.fo-card-box.combined {
+  background: linear-gradient(180deg, var(--cr-surface), rgba(23, 100, 81, 0.05));
+}
+
+.fo-connected-card-detail + .fo-connected-card-detail {
+  border-top: 1px solid var(--cr-border);
+  padding-top: 10px;
+}
+
+.fo-connected-card-detail .fo-card-box-header {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
 .fo-card-box-header {
   display: flex;
   align-items: center;
