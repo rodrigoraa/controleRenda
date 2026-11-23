@@ -1,0 +1,62 @@
+.bank-connections {
+  grid-column: 1 / -1;
+}
+.bank-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+.bank-institution {
+  min-width: 0;
+  border: 1px solid var(--cr-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.bank-institution p,
+.bank-checked,
+.bank-account small {
+  color: var(--cr-muted);
+  font-size: 0.875rem;
+}
+.bank-account {
+  border-top: 1px solid var(--cr-border);
+  margin-top: 10px;
+}
+.bank-account summary {
+  min-height: 44px;
+  padding-block: 10px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.bank-account summary:hover {
+  color: var(--cr-primary);
+}
+.bank-account summary strong {
+  margin-left: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.bank-account h4 {
+  margin: 8px 0;
+  font-size: 0.875rem;
+}
+.bank-account ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.bank-account li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  border-top: 1px solid var(--cr-border);
+  padding: 8px 0;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.bank-account li strong {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.bank-account small {
+  display: block;
+}

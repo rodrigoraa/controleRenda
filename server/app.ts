@@ -16,6 +16,7 @@ import {
   verifyPassword,
 } from "./security";
 import { parseBackup } from "../src/lib/validation";
+import type { createBankFeed } from "./bank-feed";
 const loginSchema = z
   .object({
     email: z.string().trim().toLowerCase().email().max(254),
@@ -49,7 +50,11 @@ const publicUser = (user: { id: string; email: string; name: string }) => ({
   email: user.email,
   name: user.name,
 });
-export async function createServer(config: Config, pool: pg.Pool) {
+export async function createServer(
+  config: Config,
+  pool: pg.Pool,
+  bankFeed?: ReturnType<typeof createBankFeed>,
+) {
   const app = Fastify({
     logger:
       config.LOG_LEVEL === "silent"
@@ -169,6 +174,18 @@ export async function createServer(config: Config, pool: pg.Pool) {
       );
     return user;
   }
+  if (bankFeed) {
+    app.addHook("onReady", async () => {
+      bankFeed.start();
+    });
+    app.addHook("onClose", async () => {
+      bankFeed.stop();
+    });
+  }
+  app.get("/api/banks", async (request) => {
+    const user = await requireAccount(request);
+    return bankFeed?.forUser(user.email) ?? { enabled: false };
+  });
   app.get("/api/health", async (_request, reply) => {
     try {
       await pool.query("SELECT 1");

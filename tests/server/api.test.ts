@@ -7,6 +7,7 @@ import { PostgresRepository } from "../../server/repository";
 import { hashPassword, tokenHash } from "../../server/security";
 import { createDemo } from "../../src/lib/demo";
 import { readConfig } from "../../server/config";
+import type { BankOverview } from "../../src/lib/bank-feed";
 const url = process.env.TEST_DATABASE_URL;
 if (!url)
   throw new Error(
@@ -91,6 +92,58 @@ it("bloqueia leitura e gravação sem login", async () => {
       })
     ).statusCode,
   ).toBe(401);
+});
+it("expõe a consulta bancária apenas ao titular autenticado da configuração", async () => {
+  await app.close();
+  const ownerView: BankOverview = {
+    enabled: true,
+    status: "ready",
+    checkedAt: null,
+    banks: [
+      {
+        institution: "nubank",
+        status: "ready",
+        providerUpdatedAt: null,
+        accounts: [
+          {
+            kind: "checking",
+            balance: 12000,
+            transactions: [],
+            bills: [],
+            limited: false,
+          },
+        ],
+      },
+    ],
+  };
+  app = await createServer(config, pool, {
+    async refresh() {},
+    start() {},
+    stop() {},
+    forUser: (address) => (address === email ? ownerView : { enabled: false }),
+  });
+  expect((await app.inject({ url: "/api/banks" })).statusCode).toBe(401);
+  const other = await login(secondEmail);
+  expect(
+    (
+      await app.inject({
+        url: "/api/banks",
+        headers: accountHeaders(other, secondAccountId),
+      })
+    ).json(),
+  ).toEqual({ enabled: false });
+  expect(
+    (await app.inject({ url: "/api/banks", headers: accountHeaders(other) }))
+      .statusCode,
+  ).toBe(401);
+  const owner = await login();
+  const result = await app.inject({
+    url: "/api/banks",
+    headers: accountHeaders(owner),
+  });
+  expect(result.statusCode).toBe(200);
+  expect(result.headers["cache-control"]).toBe("no-store");
+  expect(result.json()).toEqual(ownerView);
 });
 it("autentica com cookie seguro e não retorna hash de senha", async () => {
   const response = await app.inject({

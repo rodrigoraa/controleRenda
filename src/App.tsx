@@ -61,6 +61,7 @@ import {
 import { parseBackup, serializeBackup } from "./lib/validation";
 import { BudgetConflictError, type BudgetPersistence } from "./lib/persistence";
 import { AccountPanel } from "./components/AccountPanel";
+import { BankConnections } from "./components/BankConnections";
 import type { AuthUser } from "./lib/api";
 import { createDemo } from "./lib/demo";
 import {
@@ -1493,6 +1494,7 @@ export default function App({
               {account && (
                 <AccountPanel user={account.user} onLogout={account.onLogout} />
               )}
+              {account && !demo && <BankConnections key={account.user.id} accountId={account.user.id} />}
               <section className="panel settings-panel example-settings">
                 <span className="settings-icon">
                   <FlaskConical size={24} />

@@ -2,12 +2,25 @@ import "dotenv/config";
 import { readConfig } from "./config";
 import { createPool, migrate } from "./db";
 import { createServer } from "./app";
+import { createBankFeed, readBankConfig } from "./bank-feed";
 const config = readConfig(),
   pool = createPool(config.DATABASE_URL);
 let app: Awaited<ReturnType<typeof createServer>> | undefined;
 try {
   await migrate(pool);
-  app = await createServer(config, pool);
+  let bankFeed: ReturnType<typeof createBankFeed> | undefined;
+  try {
+    const bankConfig = readBankConfig(process.env);
+    if (bankConfig) {
+      if (!config.APP_ORIGIN.startsWith("https://")) throw new Error();
+      bankFeed = createBankFeed(bankConfig);
+    }
+  } catch {
+    console.warn(
+      "Contas bancárias desativadas. Confira a configuração do MeuPluggy.",
+    );
+  }
+  app = await createServer(config, pool, bankFeed);
   const stop = async () => {
     await app?.close();
     await pool.end();
