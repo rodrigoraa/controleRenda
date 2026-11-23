@@ -853,6 +853,7 @@ export default function App({
           {page === "overview" && (
             <FinancialOverview
               key={demo ? "demo" : (account?.user.id ?? "local")}
+              state={state}
               bankRead={bank.view}
               bankError={bank.failed}
               summary={summary}
@@ -864,6 +865,7 @@ export default function App({
               onlyBankPurchases={
                 attention.total === 0 && bankPurchases.length > 0
               }
+              onMonthChange={setMonth}
               onPlan={() => navigate("planning")}
               onAttention={() => navigate("attention")}
               onBalance={() => setDialog({ type: "balance" })}
