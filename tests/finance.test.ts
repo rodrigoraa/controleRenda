@@ -7,6 +7,7 @@ import {
   invoice,
   summarize,
   splitPurchase,
+  simulatePurchase,
 } from "../src/lib/finance";
 import type { State, Entry } from "../src/lib/types";
 const makeState = (): State => ({
@@ -35,6 +36,55 @@ const makeEntry = (changes: Partial<Entry> = {}): Entry => ({
   category: "Salário",
   repeat: "monthly",
   ...changes,
+});
+describe("simulação de compras", () => {
+  it("compara saldos acumulados, incluindo crédito já pago na fatura e centavos das parcelas", () => {
+    const state = makeState();
+    state.entries = [makeEntry()];
+    state.payments = [
+      { id: "credit", month: "2026-12", amount: 1000, date: "2026-11-06" },
+    ];
+    const original = structuredClone(state);
+    const { months, installments } = simulatePurchase(
+      state,
+      {
+        amount: 10000,
+        method: "card",
+        month: "2026-12",
+        count: 3,
+      },
+      "2026-11",
+    );
+    expect(installments.map((amount) => amount)).toEqual([3334, 3333, 3333]);
+    expect(months.slice(0, 4)).toEqual([
+      { month: "2026-11", baseline: 399000, projected: 399000 },
+      { month: "2026-12", baseline: 699000, projected: 696666 },
+      { month: "2027-01", baseline: 999000, projected: 993333 },
+      { month: "2027-02", baseline: 1299000, projected: 1290000 },
+    ]);
+    expect(months).toHaveLength(6);
+    expect(state).toEqual(original);
+  });
+
+  it("mostra saldo negativo à vista e inclui até a última parcela em simulações longas", () => {
+    const state = makeState();
+    const cash = simulatePurchase(
+      state,
+      { amount: 120000, method: "account", month: "2026-11", count: 1 },
+      "2026-11",
+    );
+    expect(cash.months[1].projected).toBe(-20000);
+    const card = simulatePurchase(
+      state,
+      { amount: 120000, method: "card", month: "2026-12", count: 12 },
+      "2026-11",
+    );
+    expect(card.months.at(-1)).toEqual({
+      month: "2027-11",
+      baseline: 100000,
+      projected: -20000,
+    });
+  });
 });
 describe("calendário e valores", () => {
   it("avança do dezembro para janeiro sem depender do fuso", () =>

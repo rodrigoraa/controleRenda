@@ -12,6 +12,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ArrowRight,
+  Calculator,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -24,6 +25,7 @@ import {
   Heart,
   LayoutDashboard,
   Leaf,
+  ListTodo,
   Menu,
   Pencil,
   Plus,
@@ -71,6 +73,14 @@ import type { Entry, Occurrence, State, Transfer, Person } from "./lib/types";
 import { Modal } from "./components/Modal";
 import { TransactionsTable } from "./components/TransactionsTable";
 import { MobileNav } from "./components/MobileNav";
+import { PurchaseSimulator } from "./components/PurchaseSimulator";
+import {
+  AttentionPage,
+  AttentionPreview,
+  DailyBalance,
+} from "./components/Planning";
+import { collectAttention } from "./lib/attention";
+import { ThemeToggle } from "./ui/theme";
 import { DeleteEntryDialog } from "./components/DeleteEntryDialog";
 import { PersonDialog } from "./components/PersonControls";
 import { TransactionFilters } from "./components/TransactionFilters";
@@ -85,13 +95,20 @@ import {
   SettingsForm,
   TransferForm,
 } from "./components/Forms";
-type Page = "overview" | "entries" | "card" | "recurring" | "settings";
+type Page =
+  | "overview"
+  | "entries"
+  | "card"
+  | "recurring"
+  | "simulator"
+  | "attention"
+  | "settings";
 type Dialog =
   | { type: "entry"; editing?: Occurrence }
   | { type: "settings" }
   | { type: "balance" }
-  | { type: "payment" }
-  | { type: "reimbursement" }
+  | { type: "payment"; month: string }
+  | { type: "reimbursement"; month: string }
   | { type: "settle"; entry: Occurrence }
   | { type: "delete-installments"; entry: Occurrence }
   | { type: "person"; entry?: Occurrence }
@@ -106,9 +123,11 @@ function retainReusableDraft(current: Dialog): Dialog {
 }
 const navigation: { id: Page; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Visão geral", icon: LayoutDashboard },
+  { id: "attention", label: "Pendências", icon: ListTodo },
   { id: "entries", label: "Lançamentos", icon: ArrowDownLeft },
   { id: "card", label: "Cartão compartilhado", icon: CreditCard },
   { id: "recurring", label: "Recorrências", icon: Repeat2 },
+  { id: "simulator", label: "Simulador", icon: Calculator },
 ];
 export default function App({
   today = localDate(),
@@ -159,6 +178,10 @@ export default function App({
     [state, month, today],
   );
   const bill = summary.invoice;
+  const attention = useMemo(
+    () => collectAttention(state, today),
+    [state, today],
+  );
   const monthName = monthLabel(month).split(" de ")[0];
   useEffect(() => {
     if (dialog) setNotice(null);
@@ -268,7 +291,10 @@ export default function App({
     setSearch("");
     setTransactionFilters(defaultTransactionFilters);
     setMenu(false);
-    if (window.matchMedia?.("(max-width: 900px)").matches)
+    if (
+      window.matchMedia?.("(max-width: 900px)").matches ||
+      ((next === "simulator" || next === "attention") && window.scrollY > 0)
+    )
       window.scrollTo({ top: 0, behavior: "instant" });
   }
   async function saveEntry(
@@ -551,9 +577,6 @@ export default function App({
   const recentRows = [...rows]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
-  const dueRows = rows
-    .filter((e) => e.method === "account" && !e.settledOn)
-    .slice(0, 3);
   function startDemo() {
     if (savingRef.current) {
       setNotice({ text: "Aguarde o salvamento em andamento.", error: true });
@@ -596,6 +619,15 @@ export default function App({
       title: "Cadastre uma vez. Acompanhe sempre.",
       subtitle:
         "Suas receitas e contas mensais entram automaticamente na previsão.",
+    },
+    simulator: {
+      title: "Simular compra",
+      subtitle: "Veja quanto sobraria nos próximos meses antes de decidir.",
+    },
+    attention: {
+      title: "O que precisa da minha atenção",
+      subtitle:
+        "Veja o que está em atraso ou vence nos próximos 7 dias e confira as compras sem responsável.",
     },
     settings: {
       title: "Do seu jeito.",
@@ -741,6 +773,7 @@ export default function App({
             >
               <CircleHelp size={19} />
             </UnstyledButton>
+            <ThemeToggle />
             <UnstyledButton
               className="profile-avatar"
               aria-label="Minha conta"
@@ -765,60 +798,89 @@ export default function App({
         <main id="main-content" className="main-content">
           <div className="page-heading">
             <div>
-              <p className="eyebrow">SIMPLICIDADE QUE FAZ DIFERENÇA</p>
+              {page !== "simulator" && page !== "attention" && (
+                <p className="eyebrow">SIMPLICIDADE QUE FAZ DIFERENÇA</p>
+              )}
               <h1>{titles[page].title}</h1>
               <p className="page-subtitle">{titles[page].subtitle}</p>
             </div>
-            <Button
-              className="button primary add-button"
-              onClick={() => setDialog({ type: "entry" })}
-            >
-              <Plus size={18} />
-              Novo lançamento
-            </Button>
+            {page !== "simulator" && page !== "attention" && (
+              <Button
+                className="button primary add-button"
+                onClick={() => setDialog({ type: "entry" })}
+              >
+                <Plus size={18} />
+                Novo lançamento
+              </Button>
+            )}
           </div>
-          {page !== "settings" && (
-            <div className="period-toolbar">
-              <div className="month-picker">
-                <UnstyledButton
-                  className="icon-button"
-                  aria-label="Mês anterior"
-                  disabled={month <= state.settings.initialMonth}
-                  onClick={() => setMonth(addMonths(month, -1))}
-                >
-                  <ChevronLeft size={17} />
-                </UnstyledButton>
-                <span>{monthLabel(month)}</span>
-                <UnstyledButton
-                  className="icon-button"
-                  aria-label="Próximo mês"
-                  disabled={month >= "2099-11"}
-                  onClick={() => setMonth(addMonths(month, 1))}
-                >
-                  <ChevronRight size={17} />
-                </UnstyledButton>
-              </div>
-              <div className="period-right">
-                {month !== currentMonth && (
+          {page !== "settings" &&
+            page !== "simulator" &&
+            page !== "attention" && (
+              <div className="period-toolbar">
+                <div className="month-picker">
                   <UnstyledButton
-                    className="text-button small"
-                    onClick={() =>
-                      setMonth(
-                        currentMonth < state.settings.initialMonth
-                          ? state.settings.initialMonth
-                          : currentMonth,
-                      )
-                    }
+                    className="icon-button"
+                    aria-label="Mês anterior"
+                    disabled={month <= state.settings.initialMonth}
+                    onClick={() => setMonth(addMonths(month, -1))}
                   >
-                    Voltar para hoje
+                    <ChevronLeft size={17} />
                   </UnstyledButton>
-                )}
-                <span className="soft-label">
-                  <span className="status-dot" />
-                  {demo ? "Exemplo interativo" : "Atualizado a cada lançamento"}
-                </span>
+                  <span>{monthLabel(month)}</span>
+                  <UnstyledButton
+                    className="icon-button"
+                    aria-label="Próximo mês"
+                    disabled={month >= "2099-11"}
+                    onClick={() => setMonth(addMonths(month, 1))}
+                  >
+                    <ChevronRight size={17} />
+                  </UnstyledButton>
+                </div>
+                <div className="period-right">
+                  {month !== currentMonth && (
+                    <UnstyledButton
+                      className="text-button small"
+                      onClick={() =>
+                        setMonth(
+                          currentMonth < state.settings.initialMonth
+                            ? state.settings.initialMonth
+                            : currentMonth,
+                        )
+                      }
+                    >
+                      Voltar para hoje
+                    </UnstyledButton>
+                  )}
+                  <span className="soft-label">
+                    <span className="status-dot" />
+                    {demo
+                      ? "Exemplo interativo"
+                      : "Atualizado a cada lançamento"}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
+          {page === "simulator" && (
+            <PurchaseSimulator
+              key={`${demo ? "demo" : "real"}-${state.settings.initialMonth}`}
+              state={state}
+              today={today}
+            />
+          )}
+          {page === "attention" && (
+            <AttentionPage
+              attention={attention}
+              today={today}
+              people={state.people}
+              saving={saving}
+              onSettle={togglePaid}
+              onAssign={assign}
+              onAddPerson={(row) => setDialog({ type: "person", entry: row })}
+              onTransfer={(type, targetMonth) =>
+                setDialog({ type, month: targetMonth })
+              }
+            />
           )}
           {page === "overview" && (
             <>
@@ -852,6 +914,15 @@ export default function App({
                 month={month}
                 onBalance={() => setDialog({ type: "balance" })}
                 onEntries={() => navigate("entries")}
+              />
+              <AttentionPreview
+                total={attention.total}
+                onOpen={() => navigate("attention")}
+              />
+              <DailyBalance
+                state={state}
+                today={today}
+                onSimulate={() => navigate("simulator")}
               />
               {bill.unknown > 0 && (
                 <div className="alert compact">
@@ -987,90 +1058,37 @@ export default function App({
                   </div>
                 </section>
               </div>
-              <div className="dashboard-grid lower-grid">
-                <section className="panel movements-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Lançamentos do mês</h2>
-                      <p>Os detalhes que fazem a diferença.</p>
-                    </div>
-                    <UnstyledButton
-                      className="text-button"
-                      onClick={() => navigate("entries")}
-                    >
-                      Ver todos <ArrowRight size={15} />
-                    </UnstyledButton>
+              <section className="panel movements-panel">
+                <div className="panel-heading">
+                  <div>
+                    <h2>Lançamentos do mês</h2>
+                    <p>Os detalhes que fazem a diferença.</p>
                   </div>
-                  <TransactionsTable
-                    people={state.people}
-                    onAddPerson={(row) =>
-                      setDialog({ type: "person", entry: row })
-                    }
-                    items={recentRows}
-                    compact
-                    page={page}
-                    search={search}
-                    filter={hasDetailedFilters ? "filtered" : filter}
-                    onAssign={assign}
-                    onTogglePaid={togglePaid}
-                    onEdit={(row) => setDialog({ type: "entry", editing: row })}
-                    onDelete={deleteRow}
-                    onStop={stopRecurring}
-                    onCreate={() => setDialog({ type: "entry" })}
-                  />
-                </section>
-                <section className="panel upcoming-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>No seu radar</h2>
-                      <p>Entradas e contas pendentes.</p>
-                    </div>
-                    <Clock3 size={19} />
-                  </div>
-                  {dueRows.length ? (
-                    dueRows.map((row) => (
-                      <div className="upcoming-row" key={row.key}>
-                        <span
-                          className={`date-tile ${row.date < today ? "overdue" : ""}`}
-                        >
-                          <strong>{row.date.slice(8)}</strong>
-                          <small>{monthName.slice(0, 3)}</small>
-                        </span>
-                        <div>
-                          <strong>{row.description}</strong>
-                          <small>
-                            {row.date < today
-                              ? "Confirmar movimentação"
-                              : row.kind === "income"
-                                ? "Entrada prevista"
-                                : "Pagamento previsto"}
-                          </small>
-                        </div>
-                        <strong
-                          className={row.kind === "income" ? "positive" : ""}
-                        >
-                          {row.kind === "income" ? "+ " : ""}
-                          {money(row.amount)}
-                        </strong>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="quiet-state">
-                      <CheckCircle2 size={29} />
-                      <strong>Tudo tranquilo por aqui.</strong>
-                      <p>As pendências deste mês aparecem aqui.</p>
-                    </div>
-                  )}
-                  <div className="upcoming-note">
-                    <Leaf size={17} />
-                    <p>
-                      Um lançamento por vez.
-                      <br />
-                      <strong>Seu futuro agradece.</strong>
-                    </p>
-                  </div>
-                </section>
-              </div>
+                  <UnstyledButton
+                    className="text-button"
+                    onClick={() => navigate("entries")}
+                  >
+                    Ver todos <ArrowRight size={15} />
+                  </UnstyledButton>
+                </div>
+                <TransactionsTable
+                  people={state.people}
+                  onAddPerson={(row) =>
+                    setDialog({ type: "person", entry: row })
+                  }
+                  items={recentRows}
+                  compact
+                  page={page}
+                  search={search}
+                  filter={hasDetailedFilters ? "filtered" : filter}
+                  onAssign={assign}
+                  onTogglePaid={togglePaid}
+                  onEdit={(row) => setDialog({ type: "entry", editing: row })}
+                  onDelete={deleteRow}
+                  onStop={stopRecurring}
+                  onCreate={() => setDialog({ type: "entry" })}
+                />
+              </section>
             </>
           )}
           {(page === "entries" || page === "recurring" || page === "card") && (
@@ -1143,7 +1161,9 @@ export default function App({
                       <Button
                         className="button secondary"
                         disabled={bill.toReceive <= 0}
-                        onClick={() => setDialog({ type: "reimbursement" })}
+                        onClick={() =>
+                          setDialog({ type: "reimbursement", month })
+                        }
                       >
                         <ArrowDownLeft size={16} />
                         Registrar repasse
@@ -1151,7 +1171,7 @@ export default function App({
                       <Button
                         className="button primary"
                         disabled={bill.outstanding <= 0}
-                        onClick={() => setDialog({ type: "payment" })}
+                        onClick={() => setDialog({ type: "payment", month })}
                       >
                         <Check size={16} />
                         Registrar pagamento
@@ -1594,12 +1614,12 @@ export default function App({
           mode={dialog.type}
           maximum={
             dialog.type === "payment"
-              ? bill.outstanding
+              ? invoice(state, dialog.month).outstanding
               : dialog.type === "reimbursement"
-                ? bill.toReceive
+                ? invoice(state, dialog.month).toReceive
                 : dialog.entry.amount
           }
-          month={month}
+          month={dialog.type === "settle" ? dialog.entry.month : dialog.month}
           today={today}
           initialMonth={state.settings.initialMonth}
           onSave={saveTransfer}

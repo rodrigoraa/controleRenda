@@ -59,7 +59,7 @@
 }
 
 .cr-transactions-table tbody tr:hover {
-  background: #f7faf8;
+  background: light-dark(#f7faf8, var(--cr-canvas));
 }
 
 .cr-entry-name {
@@ -76,18 +76,18 @@
   height: 38px;
   place-items: center;
   border-radius: 11px;
-  color: #6d766b;
-  background: #f1f3ee;
+  color: light-dark(#6d766b, var(--cr-muted));
+  background: light-dark(#f1f3ee, var(--cr-canvas));
 }
 
 .cr-entry-icon[data-kind="income"] {
   color: var(--cr-primary, #176451);
-  background: #eaf4ee;
+  background: light-dark(#eaf4ee, var(--cr-tint));
 }
 
 .cr-entry-icon[data-method="card"] {
-  color: #526e7d;
-  background: #eef3f6;
+  color: light-dark(#526e7d, var(--cr-muted));
+  background: light-dark(#eef3f6, var(--cr-canvas));
 }
 
 .cr-entry-name > div {
@@ -122,8 +122,8 @@
 .cr-installment-badge {
   font-size: 10px;
   font-weight: 600;
-  color: #536965;
-  background: #edf2ef;
+  color: light-dark(#536965, var(--cr-muted));
+  background: light-dark(#edf2ef, var(--cr-canvas));
 }
 
 .cr-owner-select {
@@ -145,33 +145,33 @@
 }
 
 .cr-owner-select select:hover {
-  border-color: #a6bbb2;
+  border-color: light-dark(#a6bbb2, var(--cr-muted));
 }
 
 .cr-transactions .cr-status-button {
   min-height: 44px;
   max-width: 100%;
   padding-inline: 11px;
-  border: 1px solid #e1e7df;
+  border: 1px solid light-dark(#e1e7df, var(--cr-border));
   border-radius: 9px;
-  background: #f3f5f0;
-  color: #63705a;
+  background: light-dark(#f3f5f0, var(--cr-canvas));
+  color: light-dark(#63705a, var(--cr-muted));
   font-size: 12px;
   font-weight: 500;
 }
 
 .cr-transactions .cr-status-button:hover {
-  background: #e9eee4;
+  background: light-dark(#e9eee4, var(--cr-tint));
 }
 
 .cr-transactions .cr-status-button[data-settled="true"] {
-  border-color: #d8e9e0;
-  background: #eaf4ee;
+  border-color: light-dark(#d8e9e0, var(--cr-border));
+  background: light-dark(#eaf4ee, var(--cr-tint));
   color: var(--cr-primary, #176451);
 }
 
 .cr-transactions .cr-status-button[data-settled="true"]:hover {
-  background: #deeee5;
+  background: light-dark(#deeee5, var(--cr-tint));
 }
 
 .cr-transactions-table .cr-entry-amount {
@@ -208,13 +208,13 @@
 }
 
 .cr-row-actions .cr-row-action:hover {
-  background: #edf4f0;
+  background: light-dark(#edf4f0, var(--cr-tint));
   color: var(--cr-primary, #176451);
 }
 
 .cr-row-actions .cr-row-action-danger:hover {
   color: var(--cr-danger, #b94d42);
-  background: #fff0ed;
+  background: light-dark(#fff0ed, var(--cr-danger-bg));
 }
 
 .cr-row-actions .cr-stop-button {
@@ -226,7 +226,7 @@
 
 .cr-row-actions .cr-stop-button:hover {
   color: var(--cr-ink, #152e2b);
-  background: #edf4f0;
+  background: light-dark(#edf4f0, var(--cr-tint));
 }
 
 .cr-table-note,
@@ -259,7 +259,7 @@
   height: 54px;
   place-items: center;
   border-radius: 18px;
-  background: #edf4f0;
+  background: light-dark(#edf4f0, var(--cr-tint));
   color: var(--cr-primary, #176451);
 }
 
@@ -355,7 +355,7 @@
 
 .cr-transaction-filters select:hover,
 .cr-transaction-filters input:hover {
-  border-color: #a6bbb2;
+  border-color: light-dark(#a6bbb2, var(--cr-muted));
 }
 
 .cr-transaction-filters input[data-error] {
@@ -377,9 +377,9 @@
 }
 
 .cr-filter-actions button:hover {
-  border-color: #a6bbb2;
+  border-color: light-dark(#a6bbb2, var(--cr-muted));
   color: var(--cr-ink, #152e2b);
-  background: #f4f8f5;
+  background: light-dark(#f4f8f5, var(--cr-tint));
 }
 
 .cr-filter-message {
@@ -456,7 +456,7 @@
   .cr-mobile-nav.mobile-nav > button:hover,
   .cr-mobile-nav.mobile-nav > button:active,
   .cr-mobile-nav.mobile-nav > button.active {
-    background: #edf5f0;
+    background: light-dark(#edf5f0, var(--cr-tint));
     color: var(--cr-primary, #176451);
   }
 
@@ -474,8 +474,8 @@
     height: 38px;
     place-items: center;
     border-radius: 12px;
-    background: var(--cr-primary, #176451);
-    color: #fff;
+    background: var(--cr-brand, #176451);
+    color: var(--cr-on-brand, #fff);
   }
 
   .cr-mobile-nav.mobile-nav > .mobile-add {

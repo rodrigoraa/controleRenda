@@ -631,7 +631,7 @@ export function TransferForm({
       subtitle={
         mode === "settle"
           ? "Confirme o dia em que o dinheiro entrou ou saiu."
-          : "Registre somente o valor que realmente foi transferido."
+          : `Fatura de ${monthLabel(month)}. Registre somente o valor que realmente foi transferido.`
       }
       onClose={onClose}
     >

@@ -2,7 +2,7 @@
 
 ## Product context
 
-Aplicação pessoal de orçamento e cartão compartilhado; prioridade ao celular. Mercado Brasil, locale pt-BR, moeda BRL. Datas são ISO civis no domínio e dia/mês na apresentação, fuso do dispositivo para “hoje”. Tema claro; acessibilidade WCAG 2.2 AA. Fontes e rótulos com acentos completos.
+Aplicação pessoal de orçamento e cartão compartilhado; prioridade ao celular. Mercado Brasil, locale pt-BR, moeda BRL. Datas são ISO civis no domínio e dia/mês na apresentação, fuso do dispositivo para “hoje”. Temas claro e escuro; acessibilidade WCAG 2.2 AA. Fontes e rótulos com acentos completos.
 
 ## Business-context sources
 
@@ -46,6 +46,10 @@ Filtros ficam recolhidos até 650px sob “Filtros e ordenação”, com contado
 | Importar             | validação e confirmação antes de substituir          | novo orçamento confirmado                                       | nenhum sucesso falso; descartar leitura após troca de modo | App; auditoria         |
 
 ## Navigation and responsive behavior
+
+O Simulador abre pela navegação principal e pela linha do tempo no Início. O cenário fica em memória nessa tela, compara saldos de fim de mês usando as regras de previsão e agrupa os resultados de seis em seis meses. O controle de tema aparece no cabeçalho e na tela de login. Apenas a preferência de tema é compartilhada no navegador.
+
+A linha do tempo parte do saldo confirmado e cobre 30 dias a partir de hoje ou do início do orçamento. Contas vencidas entram no primeiro dia; receitas vencidas só contam quando confirmadas. Saídas são consideradas antes de entradas no mesmo dia. O simulador usa esses critérios na comparação com a reserva e mantém a previsão acumulada mensal separada. Pendências reúne movimentações e faturas até sete dias à frente, compras sem responsável de faturas até o mês atual e repasses devidos ao vencimento da fatura. As ações usam os fluxos de confirmação e atribuição existentes.
 
 Início, Lançamentos, Cartão, Recorrências, Configurações. Sidebar desktop e barra inferior no telefone. Navegação de verdade expõe aria-current; nome da aba `{Página} · Controle Renda`, sem valores/PII. Estado do mês preservado enquanto usuário navega; novos filtros reiniciam por área conforme comportamento existente. O documento rola; tabelas só usam overflow próprio se necessário. Modais não excedem visualViewport e safe areas; ações continuam alcançáveis com teclado aberto.
 

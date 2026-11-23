@@ -166,12 +166,6 @@
   .card-preview-panel .card-panel-bottom {
     align-self: end;
   }
-  .lower-grid .movements-panel {
-    order: 1;
-  }
-  .lower-grid .upcoming-panel {
-    order: 2;
-  }
   .welcome-card {
     flex-wrap: wrap;
     padding: 21px;

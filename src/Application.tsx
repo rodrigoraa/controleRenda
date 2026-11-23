@@ -29,6 +29,7 @@ import type { State } from "./lib/types";
 import { loadState } from "./lib/storage";
 import { monthOf, localDate } from "./lib/finance";
 import { ValidatedForm } from "./ui/ValidatedForm";
+import { ThemeToggle } from "./ui/theme";
 import "./ui/auth.css";
 type Phase =
   | { kind: "loading" }
@@ -253,9 +254,12 @@ function LoginForm({
     <main className="cr-auth">
       <header className="cr-auth-header">
         <AuthBrand />
-        <span className="cr-auth-access">
-          <LockKeyhole size={14} aria-hidden="true" /> Acesso à conta
-        </span>
+        <div className="cr-auth-header-actions">
+          <span className="cr-auth-access">
+            <LockKeyhole size={14} aria-hidden="true" /> Acesso à conta
+          </span>
+          <ThemeToggle />
+        </div>
       </header>
       <div className="cr-auth-content">
         <Card withBorder className="cr-auth-card">

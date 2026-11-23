@@ -161,6 +161,8 @@
   gap: 7px;
 }
 .cr-kind-toggle button[aria-pressed="true"] {
+  background: var(--cr-surface);
+  color: var(--cr-primary);
   box-shadow: 0 2px 7px #152e2b0d;
 }
 .cr-checkbox .mantine-Checkbox-body {
@@ -192,7 +194,7 @@
   padding: 18px 24px;
   border-top: 1px solid var(--cr-border, #dde6e2);
   background: var(--cr-surface, #fff);
-  box-shadow: 0 -10px 18px #ffffffed;
+  box-shadow: 0 -10px 18px light-dark(#ffffffed, var(--cr-surface));
 }
 .cr-form-footer .mantine-Button-root {
   min-height: 46px;
@@ -206,9 +208,9 @@
 .cr-form-validation {
   margin: 0;
   padding: 12px 14px;
-  border: 1px solid #b43d3d30;
+  border: 1px solid light-dark(#b43d3d30, var(--cr-danger));
   border-radius: 10px;
-  background: #fff4f3;
+  background: light-dark(#fff4f3, var(--cr-danger-bg));
   color: var(--cr-danger, #b43d3d);
   font-size: 14px;
   line-height: 1.6;

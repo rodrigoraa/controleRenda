@@ -1,8 +1,52 @@
 import { useState } from "react";
-import { Button, TextInput } from "@mantine/core";
-import type { Person } from "../lib/types";
+import { Button, NativeSelect, TextInput } from "@mantine/core";
+import type { Entry, Occurrence, Person } from "../lib/types";
+import { personOptions } from "../lib/people";
 import { Modal } from "./Modal";
 export type AddPerson = (name: string) => Promise<Person | undefined>;
+export function OwnerSelect({
+  row,
+  people,
+  disabled,
+  label,
+  describedBy,
+  onAssign,
+  onAddPerson,
+}: {
+  row: Occurrence;
+  people?: Person[];
+  disabled?: boolean;
+  label?: string;
+  describedBy?: string;
+  onAssign: (row: Occurrence, owner: Entry["owner"]) => void;
+  onAddPerson?: (row: Occurrence) => void;
+}) {
+  return (
+    <NativeSelect
+      className="cr-owner-select"
+      label={label}
+      aria-label={
+        label
+          ? `${label}: ${row.description}`
+          : `Responsável por ${row.description}`
+      }
+      aria-describedby={describedBy}
+      value={row.owner}
+      disabled={disabled}
+      onChange={(event) => {
+        if (event.currentTarget.value === "__add_person__") onAddPerson?.(row);
+        else onAssign(row, event.currentTarget.value as Entry["owner"]);
+      }}
+    >
+      {personOptions(people).map((person) => (
+        <option key={person.id} value={person.id}>
+          {person.name}
+        </option>
+      ))}
+      {onAddPerson && <option value="__add_person__">Adicionar pessoa…</option>}
+    </NativeSelect>
+  );
+}
 export function PersonCreator({
   onAdd,
   onCreated,

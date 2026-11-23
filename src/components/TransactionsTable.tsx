@@ -3,7 +3,6 @@ import {
   ActionIcon,
   Badge,
   Button,
-  NativeSelect,
   Pagination,
   Table,
   Tooltip,
@@ -21,7 +20,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import type { Entry, Occurrence, Person } from "../lib/types";
-import { personOptions } from "../lib/people";
+import { OwnerSelect } from "./PersonControls";
 import { money, shortDate } from "../lib/finance";
 import "../ui/lists.css";
 type Props = {
@@ -155,26 +154,13 @@ export function TransactionsTable({
               </Table.Td>
               <Table.Td role="cell">
                 {row.method === "card" ? (
-                  <NativeSelect
-                    className="cr-owner-select"
-                    aria-label={`Responsável por ${row.description}`}
-                    aria-describedby={row.installment ? ownerHintId : undefined}
-                    value={row.owner}
-                    onChange={(e) => {
-                      if (e.target.value === "__add_person__")
-                        onAddPerson?.(row);
-                      else onAssign(row, e.target.value as Entry["owner"]);
-                    }}
-                  >
-                    {personOptions(people).map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.name}
-                      </option>
-                    ))}
-                    {onAddPerson && (
-                      <option value="__add_person__">Adicionar pessoa…</option>
-                    )}
-                  </NativeSelect>
+                  <OwnerSelect
+                    row={row}
+                    people={people}
+                    describedBy={row.installment ? ownerHintId : undefined}
+                    onAssign={onAssign}
+                    onAddPerson={onAddPerson}
+                  />
                 ) : (
                   <Button
                     className="cr-status-button"

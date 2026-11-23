@@ -62,7 +62,7 @@ Fonte canônica dos valores: `src/ui/theme.tsx` (`uiTokens` e tema Mantine). Est
 
 ## Colors
 
-Verde identifica ações principais e valores positivos. Tinta escura para leitura; superfícies brancas sobre fundo frio suave. Vermelho só para saída negativa, erro ou ação destrutiva e acompanhado de rótulo/ícone. Valores previstos recebem identificação textual “Previsão”; dinheiro real recebe “Confirmado”. Não depender apenas de cor. Tema claro único nesta versão.
+Verde identifica ações principais e valores positivos. O tema claro usa superfícies brancas sobre fundo frio suave. No tema escuro, `darkTokens` mapeia fundo (`#101a18`), superfície (`#192622`), texto (`#e4efeb`), texto secundário (`#a8bcb4`), borda (`#344840`), destaque (`#92d7b9`) e erro (`#ffa49b`). Ações sólidas mantêm o verde marca `#176451` com texto branco. Vermelho acompanha texto ou ícone de saída negativa, erro ou ação destrutiva. Valores previstos recebem identificação textual e ficam distintos do dinheiro confirmado. O tema claro é o padrão, com alternância manual e preferência guardada no navegador.
 
 ## Typography
 

@@ -3,8 +3,11 @@ import {
   Button,
   createTheme,
   MantineProvider,
+  UnstyledButton,
+  useMantineColorScheme,
   type CSSVariablesResolver,
 } from "@mantine/core";
+import { Moon, Sun } from "lucide-react";
 export const uiTokens = {
   primary: "#176451",
   ink: "#152e2b",
@@ -16,6 +19,20 @@ export const uiTokens = {
   success: "#176451",
   body: "'DM Sans Variable', system-ui, sans-serif",
   display: "'Manrope Variable', system-ui, sans-serif",
+};
+const darkTokens = {
+  primary: "#92d7b9",
+  ink: "#e4efeb",
+  canvas: "#101a18",
+  surface: "#192622",
+  muted: "#a8bcb4",
+  border: "#344840",
+  danger: "#ffa49b",
+  success: "#92d7b9",
+};
+const brand = {
+  "--cr-brand": uiTokens.primary,
+  "--cr-on-brand": uiTokens.surface,
 };
 export const theme = createTheme({
   primaryColor: "finance",
@@ -61,8 +78,30 @@ const cssVariablesResolver: CSSVariablesResolver = () => ({
   light: {
     "--mantine-color-body": uiTokens.canvas,
     "--mantine-color-text": uiTokens.ink,
+    ...brand,
+    "--cr-tint": "#edf7f2",
+    "--cr-warning-bg": "#fff8eb",
+    "--cr-warning-ink": "#775325",
+    "--cr-warning-border": "#ead4ac",
+    "--cr-danger-bg": "#fff4f3",
+    "--cr-scrollbar-thumb": "#b4c4bd",
+    "--cr-scrollbar-hover": "#879e93",
   },
-  dark: {},
+  dark: {
+    ...Object.fromEntries(
+      Object.entries(darkTokens).map(([key, value]) => [`--cr-${key}`, value]),
+    ),
+    ...brand,
+    "--mantine-color-body": darkTokens.canvas,
+    "--mantine-color-text": darkTokens.ink,
+    "--cr-tint": "#233b32",
+    "--cr-warning-bg": "#3a2d1d",
+    "--cr-warning-ink": "#ffd196",
+    "--cr-warning-border": "#6d5537",
+    "--cr-danger-bg": "#422827",
+    "--cr-scrollbar-thumb": "#526e64",
+    "--cr-scrollbar-hover": "#77968a",
+  },
 });
 export function UIProvider({
   children,
@@ -75,10 +114,31 @@ export function UIProvider({
     <MantineProvider
       theme={theme}
       cssVariablesResolver={cssVariablesResolver}
-      forceColorScheme="light"
+      defaultColorScheme="light"
       env={test ? "test" : undefined}
     >
       {children}
     </MantineProvider>
+  );
+}
+
+export function ThemeToggle() {
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+  const dark = colorScheme === "dark";
+  const label = dark ? "Ativar modo claro" : "Ativar modo escuro";
+  return (
+    <UnstyledButton
+      type="button"
+      className="icon-button theme-toggle"
+      aria-label={label}
+      title={label}
+      onClick={() => toggleColorScheme()}
+    >
+      {dark ? (
+        <Sun size={19} aria-hidden="true" />
+      ) : (
+        <Moon size={19} aria-hidden="true" />
+      )}
+    </UnstyledButton>
   );
 }
