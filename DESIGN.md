@@ -70,7 +70,7 @@ DM Sans Variable para texto e controles; Manrope Variable para títulos e valore
 
 ## Layout
 
-Sidebar desktop de 232px, conteúdo com largura máxima de 78rem. Abaixo de 900px, navegação inferior de cinco ações e atalhos; o documento é dono da rolagem. Conteúdo com 16px de respiro no telefone, 32px no desktop. Na Visão Geral, o saldo de hoje recebe destaque e os rótulos explicam a origem dos dados. Planejar reúne a linha do tempo e as previsões por mês. Bancos mostra informações do provedor e a data de atualização em uma área própria. Listas do orçamento têm paginação local de 20 itens e uma representação semântica única que se reorganiza em cartões no telefone.
+Sidebar desktop de 232px, conteúdo com largura máxima de 78rem. Abaixo de 900px, navegação inferior de cinco ações e atalhos; o documento é dono da rolagem. Conteúdo com 16px de respiro no telefone, 32px no desktop. Na Visão Geral, a ordem é cartões e contas, filtro com projeção por mês, resumo do mês atual e previsão do próximo mês. Cada cartão ou conta recebe um card com o tipo e o significado do valor. Os resumos usam datas reais e indicam a origem dos dados. Planejar reúne a linha do tempo e a projeção do saldo acumulado. Bancos mostra informações do provedor e a data de atualização em uma área própria. Listas do orçamento têm paginação local de 20 itens e uma representação semântica única que se reorganiza em cartões no telefone.
 
 ## Elevation & Depth
 

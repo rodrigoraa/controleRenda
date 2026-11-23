@@ -152,7 +152,7 @@
 
 .fo-all-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 16px;
 }
 
@@ -238,7 +238,6 @@
 .fo-amount-tag {
   font-size: 0.75rem;
   color: var(--cr-muted);
-  text-transform: capitalize;
 }
 
 .fo-card-value {
@@ -342,6 +341,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 4px;
+}
+
+.fo-pill-top .mantine-Badge-root {
+  flex-shrink: 0;
 }
 
 .fo-pill-top strong {
@@ -511,6 +515,25 @@
   margin: 4px 0 0;
 }
 
+.fo-period-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-top: 12px;
+}
+
+.fo-period-note p {
+  color: var(--cr-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.fo-period-note .text-button {
+  min-height: 44px;
+}
+
 .fo-next-month-metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -548,6 +571,7 @@
 }
 
 .fo-next-label {
+  margin: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -557,6 +581,7 @@
 }
 
 .fo-next-amount {
+  overflow-wrap: anywhere;
   font-size: 1.6rem;
   font-weight: 800;
   font-family: var(--cr-display);

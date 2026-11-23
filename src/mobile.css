@@ -45,6 +45,12 @@
   .add-button {
     display: none;
   }
+  .overview-heading {
+    flex-wrap: wrap;
+  }
+  .overview-heading .add-button {
+    display: inline-flex;
+  }
   .period-toolbar {
     align-items: flex-start;
     margin-bottom: 20px;

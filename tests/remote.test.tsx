@@ -32,7 +32,7 @@ it("não grava localmente nem anuncia sucesso se o servidor recusar o salvamento
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   expect(
     within(
-      screen.getByRole("region", { name: "Previsão do próximo mês" }),
+      screen.getByRole("group", { name: "Saldo previsto no fim do mês" }),
     ).getByText("R$ 0,00"),
   ).toBeInTheDocument();
 });

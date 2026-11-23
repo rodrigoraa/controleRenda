@@ -1,11 +1,14 @@
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { render, screen, within } from "./render";
 import App from "../src/App";
 import { createEmptyState } from "../src/lib/validation";
+import type { BankOverview } from "../src/lib/bank-feed";
 import type { Entry } from "../src/lib/types";
 
-it("mostra o saldo de hoje e troca o movimento, a fatura e a previsão com o mês", async () => {
+afterEach(() => vi.unstubAllGlobals());
+
+it("mantém os resumos de hoje e do próximo mês ao trocar o mês da fatura", async () => {
   const state = createEmptyState("2026-11");
   state.settings.openingBalance = 50000;
   state.people = [{ id: "person_ana", name: "Ana" }];
@@ -57,7 +60,7 @@ it("mostra o saldo de hoje e troca o movimento, a fatura e a previsão com o mê
     screen.getByRole("heading", { name: "Visão Geral", level: 1 }),
   ).toBeInTheDocument();
   const balance = screen.getByRole("region", { name: "Saldo disponível hoje" });
-  const flow = screen.getByRole("region", { name: "Entradas e saídas" });
+  const flow = screen.getByRole("region", { name: /Previsão para o mês atual/ });
   const card = screen.getByRole("region", { name: "Cartão do orçamento" });
   const forecast = screen.getByRole("region", {
     name: "Previsão do próximo mês",
@@ -73,9 +76,13 @@ it("mostra o saldo de hoje e troca o movimento, a fatura e a previsão com o mê
   expect(forecast).toHaveTextContent("dezembro de 2026");
   await user.click(screen.getByRole("button", { name: "Próximo mês" }));
   expect(balance).toHaveTextContent("R$ 1.380,00");
-  expect(within(flow).getAllByText("R$ 0,00")).toHaveLength(2);
+  expect(flow).toHaveTextContent("R$ 1.000,00");
+  expect(flow).toHaveTextContent("R$ 120,00");
   expect(card).toHaveTextContent("R$ 0,00");
-  expect(forecast).toHaveTextContent("janeiro de 2027");
+  expect(forecast).toHaveTextContent("dezembro de 2026");
+  expect(forecast).toHaveTextContent("O que vai entrar");
+  expect(forecast).toHaveTextContent("O que vai sair");
+  expect(forecast).toHaveTextContent("Saldo previsto no fim do mês");
 
   await user.click(screen.getByRole("button", { name: "Lançamentos" }));
   await user.click(screen.getByRole("button", { name: "Voltar ao mês atual" }));
@@ -86,4 +93,60 @@ it("mostra o saldo de hoje e troca o movimento, a fatura e a previsão com o mê
   expect(
     within(screen.getByRole("table")).queryByText("Luz"),
   ).not.toBeInTheDocument();
+});
+
+it("mostra cada cartão conectado mesmo sem fatura e reúne faturas do mesmo cartão", async () => {
+  const emptyCredit = {
+    kind: "credit" as const,
+    balance: null,
+    transactions: [],
+    bills: [],
+    limited: false,
+  };
+  const view: BankOverview = {
+    enabled: true,
+    status: "ready",
+    checkedAt: null,
+    banks: [{
+      institution: "nubank",
+      status: "ready",
+      providerUpdatedAt: null,
+      accounts: [
+        { ...emptyCredit, bills: [
+          { due: "2026-11-05", amount: 10000 },
+          { due: "2026-11-20", amount: 15000 },
+        ] },
+        emptyCredit,
+        { ...emptyCredit, kind: "checking", balance: 50000 },
+        { ...emptyCredit, kind: "savings" },
+      ],
+    }],
+  };
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json(view)));
+  const initial = { state: createEmptyState("2026-11"), snapshot: "0", error: null };
+  const user = userEvent.setup();
+  render(
+    <App
+      today="2026-11-10"
+      account={{
+        user: { id: "account-id", name: "Rodrigo", email: "rodrigo@example.test" },
+        onLogout: async () => {},
+      }}
+      persistence={{ initial, load: async () => initial, save: async () => initial }}
+    />,
+  );
+
+  const first = await screen.findByRole("region", { name: "Nubank · Cartão 1" });
+  const second = screen.getByRole("region", { name: "Nubank · Cartão 2" });
+  expect(first).toHaveTextContent("CRÉDITO");
+  expect(first).toHaveTextContent("R$ 250,00");
+  expect(second).toHaveTextContent("Sem fatura no mês");
+  const checking = screen.getByRole("region", { name: "Nubank (Conta corrente)" });
+  expect(checking).toHaveTextContent("DÉBITO");
+  expect(checking).toHaveTextContent("R$ 500,00");
+  expect(screen.getByRole("region", { name: "Nubank (Poupança)" })).toHaveTextContent("Saldo indisponível");
+
+  await user.click(screen.getByRole("button", { name: "Próximo mês" }));
+  expect(first).toHaveTextContent("Sem fatura no mês");
+  expect(second).toHaveTextContent("Sem fatura no mês");
 });

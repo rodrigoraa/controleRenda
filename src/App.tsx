@@ -743,7 +743,7 @@ export default function App({
           </div>
         )}
         <main id="main-content" className="main-content">
-          <div className="page-heading">
+          <div className={page === "overview" ? "page-heading overview-heading" : "page-heading"}>
             <div>
               <h1 ref={headingRef} tabIndex={-1}>
                 {pageTitle}
@@ -843,7 +843,14 @@ export default function App({
                     onAttention={() => navigate("attention")}
                     onBalance={() => setDialog({ type: "balance" })}
                     onCard={() => navigate("card")}
-                    onEntries={() => navigate("entries")}
+                    onEntries={() => {
+                      setMonth(
+                        currentMonth < state.settings.initialMonth
+                          ? state.settings.initialMonth
+                          : currentMonth,
+                      );
+                      navigate("entries");
+                    }}
                     onDemo={
                       !state.entries.length && !loadError && !demo
                         ? startDemo
@@ -872,6 +879,37 @@ export default function App({
               </div>
               <ProjectionList state={state} month={month} today={today} />
             </section>
+          )}
+          {page === "simulator" && (
+            <PurchaseSimulator
+              key={`${demo ? "demo" : "real"}-${state.settings.initialMonth}`}
+              state={state}
+              today={today}
+            />
+          )}
+          {page === "attention" && (
+            <AttentionPage
+              attention={attention}
+              bankPurchases={bankPurchases}
+              bankStatus={bankAttentionStatus}
+              bankListChanged={bank.listChanged}
+              onBankAssign={async (key, owner) => {
+                const originMode = dataModeRef.current;
+                const saved = await bank.assign(key, owner);
+                if (saved && dataModeRef.current === originMode)
+                  setNotice({ text: "Compra identificada." });
+                return saved;
+              }}
+              today={today}
+              people={state.people}
+              saving={saving}
+              onSettle={togglePaid}
+              onAssign={assign}
+              onAddPerson={(row) => setDialog({ type: "person", entry: row })}
+              onTransfer={(type, targetMonth) =>
+                setDialog({ type, month: targetMonth })
+              }
+            />
           )}
           {page === "banks" && account && !demo && (
             <BankConnections
