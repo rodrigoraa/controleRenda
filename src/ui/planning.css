@@ -121,7 +121,8 @@
   border-top: 1px solid var(--cr-border);
   overflow-wrap: anywhere;
 }
-.attention-item .cr-owner-select {
+.attention-item :is(.cr-owner-select, .bank-owner) {
+  grid-column: auto;
   width: clamp(140px, 20vw, 200px);
 }
 .attention-item .mantine-NativeSelect-input {
@@ -161,7 +162,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
   }
-  .attention-item :is(button, .cr-owner-select) {
+  .attention-item :is(button, .cr-owner-select, .bank-owner) {
     grid-column: 1 / -1;
     justify-self: start;
   }

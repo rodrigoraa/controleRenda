@@ -187,3 +187,34 @@
 .topbar .local-status[data-offline] .status-dot {
   background: var(--cr-danger);
 }
+
+.other-repayments {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--cr-border);
+}
+
+.other-repayments summary {
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--cr-primary);
+}
+
+.other-repayments-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.other-repayments-people .mantine-Button-root {
+  max-width: 100%;
+  height: auto;
+  padding-block: 8px;
+}
+
+.other-repayments-people .mantine-Button-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

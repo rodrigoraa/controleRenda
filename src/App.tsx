@@ -55,6 +55,8 @@ import { parseBackup, serializeBackup } from "./lib/validation";
 import { BudgetConflictError, type BudgetPersistence } from "./lib/persistence";
 import { AccountPanel } from "./components/AccountPanel";
 import { BankConnections } from "./components/BankConnections";
+import { unassignedBankPurchases } from "./lib/bank-feed";
+import { useBankConnections } from "./lib/use-bank-connections";
 import type { AuthUser } from "./lib/api";
 import { createDemo } from "./lib/demo";
 import {
@@ -100,6 +102,7 @@ type Dialog =
   | { type: "balance" }
   | { type: "payment"; month: string }
   | { type: "reimbursement"; month: string }
+  | { type: "other-reimbursement"; month: string; person: string }
   | { type: "settle"; entry: Occurrence }
   | { type: "delete-installments"; entry: Occurrence }
   | { type: "person"; entry?: Occurrence }
@@ -177,6 +180,26 @@ export default function App({
     () => collectAttention(state, today),
     [state, today],
   );
+  const bank = useBankConnections(
+    demo ? undefined : account?.user.id,
+    page === "overview" || page === "attention" || page === "banks",
+  );
+  const bankPurchases = useMemo(
+    () => unassignedBankPurchases(bank.view),
+    [bank.view],
+  );
+  const bankChecking =
+    !bank.failed &&
+    (bank.view === null ||
+      (bank.view.enabled && bank.view.status === "loading"));
+  const bankAttentionStatus = bank.failed
+    ? "Não foi possível verificar as compras dos bancos."
+    : bankChecking
+      ? "Verificando compras dos bancos…"
+      : bank.view?.enabled &&
+          bank.view.banks.some(({ status }) => status !== "ready")
+        ? "Alguns bancos estão com dados incompletos. Confira as conexões em Bancos."
+        : undefined;
   useEffect(() => {
     if (dialog) setNotice(null);
   }, [dialog]);
@@ -479,6 +502,20 @@ export default function App({
     else if (dialog?.type === "reimbursement") next.reimbursements.push(value);
     else if (dialog?.type === "settle")
       next.settled[dialog.entry.key] = { date: value.date };
+    else if (dialog?.type === "other-reimbursement") {
+      next.entries.push({
+        id: value.id,
+        description: `Repasse de ${dialog.person}`,
+        category: "Repasses",
+        amount: value.amount,
+        date: value.date,
+        kind: "income",
+        method: "account",
+        owner: "me",
+        repeat: "none",
+      });
+      next.settled[`${value.id}:${monthOf(value.date)}`] = { date: value.date };
+    }
     if (await commit(next, "Movimentação confirmada."))
       closeSavedDialog(origin);
   }
@@ -792,6 +829,16 @@ export default function App({
           {page === "attention" && (
             <AttentionPage
               attention={attention}
+              bankPurchases={bankPurchases}
+              bankStatus={bankAttentionStatus}
+              bankListChanged={bank.listChanged}
+              onBankAssign={async (key, owner) => {
+                const originMode = dataModeRef.current;
+                const saved = await bank.assign(key, owner);
+                if (saved && dataModeRef.current === originMode)
+                  setNotice({ text: "Compra identificada." });
+                return saved;
+              }}
               today={today}
               people={state.people}
               saving={saving}
@@ -806,17 +853,21 @@ export default function App({
           {page === "overview" && (
             <FinancialOverview
               key={demo ? "demo" : (account?.user.id ?? "local")}
-              accountId={demo ? undefined : account?.user.id}
+              bankRead={bank.view}
+              bankError={bank.failed}
               summary={summary}
               month={month}
               today={today}
               people={state.people}
-              attentionCount={attention.total}
+              attentionCount={attention.total + bankPurchases.length}
+              attentionStatus={bankAttentionStatus}
+              onlyBankPurchases={
+                attention.total === 0 && bankPurchases.length > 0
+              }
               onPlan={() => navigate("planning")}
               onAttention={() => navigate("attention")}
               onBalance={() => setDialog({ type: "balance" })}
               onCard={() => navigate("card")}
-              onBanks={() => navigate("banks")}
               onEntries={() => navigate("entries")}
               onDemo={
                 !state.entries.length && !loadError && !demo
@@ -847,7 +898,7 @@ export default function App({
           {page === "banks" && account && !demo && (
             <BankConnections
               key={account.user.id}
-              accountId={account.user.id}
+              connection={bank}
               people={state.people}
             />
           )}
@@ -897,6 +948,28 @@ export default function App({
                         Registrar pagamento
                       </Button>
                     </div>
+                    {bill.otherParts.length > 0 && (
+                      <details className="other-repayments">
+                        <summary>Registrar repasse de outra pessoa</summary>
+                        <div className="other-repayments-people">
+                          {bill.otherParts.map(({ owner, name }) => (
+                            <Button
+                              key={owner}
+                              variant="default"
+                              onClick={() =>
+                                setDialog({
+                                  type: "other-reimbursement",
+                                  month,
+                                  person: name,
+                                })
+                              }
+                            >
+                              {name}
+                            </Button>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                   </section>
                   {(bill.credit > 0 || bill.received > bill.mother) && (
                     <div className="alert">
@@ -1297,15 +1370,25 @@ export default function App({
       )}
       {(dialog?.type === "payment" ||
         dialog?.type === "reimbursement" ||
+        dialog?.type === "other-reimbursement" ||
         dialog?.type === "settle") && (
         <TransferForm
-          mode={dialog.type}
+          mode={
+            dialog.type === "other-reimbursement"
+              ? "reimbursement"
+              : dialog.type
+          }
+          receivedFrom={
+            dialog.type === "other-reimbursement" ? dialog.person : undefined
+          }
           maximum={
             dialog.type === "payment"
               ? invoice(state, dialog.month).outstanding
               : dialog.type === "reimbursement"
                 ? invoice(state, dialog.month).toReceive
-                : dialog.entry.amount
+                : dialog.type === "settle"
+                  ? dialog.entry.amount
+                  : undefined
           }
           month={dialog.type === "settle" ? dialog.entry.month : dialog.month}
           today={today}

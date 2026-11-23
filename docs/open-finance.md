@@ -40,7 +40,7 @@ Com o banco já em execução, recrie somente o aplicativo. Quem usa `cloudflare
 docker compose -f compose.yaml up -d --build --no-deps app
 ```
 
-Entre no Controle Renda com o e-mail configurado e abra **Bancos**. O servidor lê os dados disponíveis no MeuPluggy ao iniciar e a cada 15 minutos. O horário do último envio do banco, quando informado pelo provedor, aparece separadamente da hora em que o Controle Renda consultou. A consulta dos saldos, faturas e movimentações fica em memória. A tela apresenta o saldo das contas em reais, até 25 movimentações por conta dos últimos 30 dias e até três faturas por cartão, quando o banco disponibiliza esses dados.
+Entre no Controle Renda com o e-mail configurado e abra **Bancos**. O servidor lê os dados disponíveis no MeuPluggy ao iniciar e a cada 15 minutos. A tela Bancos mostra o horário da última atualização informada pelo provedor. A consulta dos saldos, faturas e movimentações fica em memória. Bancos apresenta o saldo das contas em reais e até 25 movimentações por conta dos últimos 32 dias. A Visão Geral usa até três faturas por cartão, quando o banco disponibiliza esses dados.
 
 Se o titular precisar renovar a autorização, faça isso no MeuPluggy. Para desligar a leitura no Controle Renda, defina `BANK_SYNC_ENABLED=false` e recrie o aplicativo. Para parar o compartilhamento com o provedor, revogue também o consentimento no MeuPluggy ou no banco.
 

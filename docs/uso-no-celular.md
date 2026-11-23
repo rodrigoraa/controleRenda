@@ -41,7 +41,7 @@ As listas mostram até **20 lançamentos por página**. Use as setas no fim da l
 
 No formulário de compra no cartão, toque em **Adicionar pessoa**, informe o nome e toque em **Cadastrar pessoa**. O nome fica selecionado no formulário, sem perder os dados já preenchidos. Na lista, a opção **Adicionar pessoa…** no seletor cadastra e atribui a pessoa à compra. Em compras parceladas, a atribuição vale para todas as parcelas.
 
-As pessoas ficam salvas no seu orçamento e aparecem nos seletores e filtros dos outros aparelhos. O cadastro identifica quem comprou; ele não cria uma conta de acesso. A parte de cada pessoa aparece na Visão Geral. Os repasses automáticos continuam sendo os da sua mãe; valores a receber de outras pessoas podem ser cadastrados como receita e confirmados quando entrarem.
+As pessoas ficam salvas no seu orçamento e aparecem nos seletores e filtros dos outros aparelhos. O cadastro identifica quem comprou; ele não cria uma conta de acesso. A parte de cada pessoa aparece na Visão Geral. Os repasses automáticos continuam sendo os da sua mãe; para registrar o que outra pessoa já pagou, abra **Cartão compartilhado → Registrar repasse de outra pessoa**, escolha o nome e informe o valor e a data. O repasse fica em **Lançamentos** como receita confirmada.
 
 Para corrigir uma data, toque no lápis, altere **Data prevista** ou **Data na fatura** e salve. Ao mudar o mês, o sistema abre o mês de destino. Se o lançamento já foi confirmado, você também pode corrigir a **Data do recebimento** ou **Data do pagamento**, que informa quando o dinheiro realmente entrou ou saiu.
 
@@ -51,7 +51,7 @@ A correção afeta somente o lançamento escolhido: as demais parcelas e as pró
 
 Em **Visão Geral**, o seletor muda o mês de Entradas e saídas, das faturas e da previsão. **Saldo disponível hoje** fica na data atual. Mostra o último saldo informado pelos bancos quando disponível e o saldo confirmado do orçamento nos demais casos.
 
-Quando o extrato cobre o período necessário, **Entrou** e **Saiu** usam as contas conectadas e incluem transferências entre elas. Quando a cobertura fica incompleta, a tela usa as movimentações confirmadas no orçamento. As faturas conectadas mostram os valores do banco e o responsável pelas compras recentes vinculadas. Use **Bancos** para identificar essas compras.
+Quando o extrato cobre o período necessário, **Entrou** e **Saiu** usam as contas conectadas e incluem transferências entre elas. Quando a cobertura fica incompleta, a tela usa as movimentações confirmadas no orçamento. As faturas conectadas mostram os valores do banco e o responsável pelas compras recentes vinculadas. Use **Pendências** para identificar as compras sem responsável. Em **Bancos**, você também pode corrigir uma atribuição.
 
 Entre em **Planejar** para ver as datas dos próximos pagamentos e o saldo previsto no fim de cada mês. A previsão considera as entradas e despesas cadastradas no orçamento.
 

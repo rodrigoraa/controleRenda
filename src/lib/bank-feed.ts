@@ -51,3 +51,32 @@ export type BankOverview =
       checkedAt: string | null;
       banks: BankResult[];
     };
+
+export type BankPurchase = BankAccount["transactions"][number] & {
+  purchaseKey: string;
+};
+
+export function isUnassignedBankPurchase(
+  transaction: BankAccount["transactions"][number],
+): transaction is BankPurchase {
+  return (
+    Boolean(transaction.purchaseKey) &&
+    transaction.direction === "DEBIT" &&
+    (transaction.owner ?? "unknown") === "unknown"
+  );
+}
+
+export function unassignedBankPurchases(view: BankOverview | null) {
+  if (!view?.enabled) return [];
+  return view.banks
+    .flatMap(({ accounts, institution }) =>
+      accounts.flatMap(({ kind, transactions }) =>
+        kind === "credit"
+          ? transactions
+              .filter(isUnassignedBankPurchase)
+              .map((purchase) => ({ ...purchase, institution }))
+          : [],
+      ),
+    )
+    .sort((a, b) => b.date.localeCompare(a.date));
+}

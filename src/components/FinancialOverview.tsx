@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
 import { Button, UnstyledButton } from "@mantine/core";
 import { ArrowDownLeft, ArrowRight, ArrowUpRight } from "lucide-react";
-import { apiRequest } from "../lib/api";
 import {
   bankNames,
   type BankOverview,
@@ -29,67 +27,35 @@ export function FinancialOverview({
   summary,
   month,
   today,
-  accountId,
+  bankRead,
+  bankError,
   people,
   attentionCount,
+  attentionStatus,
+  onlyBankPurchases,
   onBalance,
   onPlan,
   onAttention,
   onCard,
-  onBanks,
   onEntries,
   onDemo,
 }: {
   summary: Summary;
   month: string;
   today: string;
-  accountId?: string;
+  bankRead: BankOverview | null;
+  bankError: boolean;
   people?: Person[];
   attentionCount: number;
+  attentionStatus?: string;
+  onlyBankPurchases: boolean;
   onBalance: () => void;
   onPlan: () => void;
   onAttention: () => void;
   onCard: () => void;
-  onBanks: () => void;
   onEntries: () => void;
   onDemo?: () => void;
 }) {
-  const [bankRead, setBankRead] = useState<BankOverview | null>(null);
-  const [bankError, setBankError] = useState(false);
-  useEffect(() => {
-    if (!accountId) return;
-    let active = true;
-    let pending = false;
-    async function read() {
-      if (pending || document.visibilityState === "hidden") return;
-      pending = true;
-      try {
-        const view = await apiRequest<BankOverview>(
-          "/banks",
-          "GET",
-          undefined,
-          accountId,
-        );
-        if (active) {
-          setBankRead(view);
-          setBankError(false);
-        }
-      } catch {
-        if (active) setBankError(true);
-      } finally {
-        pending = false;
-      }
-    }
-    void read();
-    const interval = setInterval(() => void read(), 60_000);
-    window.addEventListener("focus", read);
-    return () => {
-      active = false;
-      clearInterval(interval);
-      window.removeEventListener("focus", read);
-    };
-  }, [accountId]);
-
   const banks = bankRead?.enabled ? bankRead.banks : [];
   const cashAccounts = banks.flatMap(({ accounts }) =>
     accounts.filter(({ kind }) => kind !== "credit"),
@@ -131,10 +97,6 @@ export function FinancialOverview({
       owner === "me" ? 0 : owner === "mother" ? 1 : owner === "unknown" ? 3 : 2;
     return order(a) - order(b);
   });
-  const bankPending =
-    accountId &&
-    !bankError &&
-    (!bankRead || (bankRead.enabled && bankRead.status === "loading"));
   const partialBalance =
     balances.length < cashAccounts.length ||
     banks.some(
@@ -209,18 +171,14 @@ export function FinancialOverview({
             ? "Saldo confirmado no orçamento"
             : "Saldo informado pelos bancos"}
         </p>
-        {bankPending && <p role="status">Consultando os bancos…</p>}
-        {bankError && (
-          <p role="status">
-            Falha na consulta aos bancos.
-            {bankBalance !== null ? " Exibindo o último saldo recebido." : ""}
-          </p>
+        {bankError && bankBalance !== null && (
+          <p>Exibindo o último saldo recebido.</p>
         )}
         {bankBalance !== null && (
           <>
             {oldestProviderTime ? (
               <p>
-                Atualização bancária mais antiga:{" "}
+                Dados dos bancos até{" "}
                 <time dateTime={oldestProviderTime}>
                   {bankDate.format(new Date(oldestProviderTime))}
                 </time>
@@ -231,10 +189,6 @@ export function FinancialOverview({
             {partialBalance && (
               <p>Saldo parcial. Algumas contas podem estar indisponíveis.</p>
             )}
-            <p>
-              Saldo usado no orçamento:{" "}
-              <strong>{money(summary.available)}</strong>
-            </p>
           </>
         )}
         {bankRead?.enabled &&
@@ -255,14 +209,22 @@ export function FinancialOverview({
         >
           {money(summary.nextClosing)}
         </strong>
+        <p>Estimativa para o fim de {monthLabel(addMonths(month, 1))}.</p>
         <p>
-          Saldo previsto no fim de {monthLabel(addMonths(month, 1))}, com os
-          lançamentos do orçamento.
+          A previsão parte do saldo inicial do orçamento e considera as entradas
+          e saídas cadastradas.
         </p>
         <UnstyledButton className="text-button" onClick={onPlan}>
           Ver próximos dias <ArrowRight size={16} />
         </UnstyledButton>
       </section>
+
+      <AttentionPreview
+        total={attentionCount}
+        status={attentionStatus}
+        action={onlyBankPurchases ? "Identificar compras" : "Ver pendências"}
+        onOpen={onAttention}
+      />
 
       <section className="panel fo-panel fo-flow" aria-labelledby="fo-flow">
         <h2 id="fo-flow">Entradas e saídas</h2>
@@ -292,13 +254,11 @@ export function FinancialOverview({
         {bankRead?.enabled && !bankCashCoverage && month <= monthOf(today) && (
           <p>O extrato conectado não cobre o período selecionado.</p>
         )}
-        <UnstyledButton
-          className="text-button"
-          onClick={bankCashCoverage ? onBanks : onEntries}
-        >
-          {bankCashCoverage ? "Ver extratos recentes" : "Ver lançamentos"}{" "}
-          <ArrowRight size={16} />
-        </UnstyledButton>
+        {!bankCashCoverage && (
+          <UnstyledButton className="text-button" onClick={onEntries}>
+            Ver lançamentos <ArrowRight size={16} />
+          </UnstyledButton>
+        )}
       </section>
 
       <div className="panel fo-panel fo-cards">
@@ -355,9 +315,6 @@ export function FinancialOverview({
                 Nenhuma fatura conectada disponível para {monthLabel(month)}.
               </p>
             )}
-            <UnstyledButton className="text-button" onClick={onBanks}>
-              Ver bancos e identificar compras <ArrowRight size={16} />
-            </UnstyledButton>
           </section>
         )}
         {showBudgetCard ? (
@@ -386,7 +343,6 @@ export function FinancialOverview({
           </UnstyledButton>
         )}
       </div>
-      <AttentionPreview total={attentionCount} onOpen={onAttention} />
       {onDemo && (
         <Button className="fo-demo" variant="subtle" onClick={onDemo}>
           Explorar exemplo

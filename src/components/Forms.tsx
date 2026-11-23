@@ -594,6 +594,7 @@ export function SettingsForm({
 export function TransferForm({
   mode,
   maximum,
+  receivedFrom,
   month,
   today,
   initialMonth,
@@ -601,22 +602,33 @@ export function TransferForm({
   onClose,
 }: {
   mode: "payment" | "reimbursement" | "settle";
-  maximum: number;
+  maximum?: number;
+  receivedFrom?: string;
   month: string;
   today: string;
   initialMonth: string;
   onSave: (value: Transfer) => void;
   onClose: () => void;
 }) {
-  const [amount, setAmount] = useState(moneyInput(maximum)),
+  const [amount, setAmount] = useState(
+      maximum === undefined ? "" : moneyInput(maximum),
+    ),
     [date, setDate] = useState(today),
     [error, setError] = useState("");
   const isPayment = mode === "payment";
   function submit(e: FormEvent) {
     e.preventDefault();
     const cents = parseMoney(amount);
-    if (cents === null || cents <= 0 || cents > maximum)
-      return setError(`Informe um valor entre R$ 0,01 e ${money(maximum)}.`);
+    if (
+      cents === null ||
+      cents <= 0 ||
+      (maximum !== undefined && cents > maximum)
+    )
+      return setError(
+        maximum === undefined
+          ? "Informe um valor maior que zero, com até duas casas decimais."
+          : `Informe um valor entre R$ 0,01 e ${money(maximum)}.`,
+      );
     onSave({ id: crypto.randomUUID(), month, amount: cents, date });
   }
   return (
@@ -625,13 +637,17 @@ export function TransferForm({
         isPayment
           ? "Registrar pagamento da fatura"
           : mode === "reimbursement"
-            ? "Registrar repasse"
+            ? receivedFrom
+              ? `Registrar repasse de ${receivedFrom}`
+              : "Registrar repasse"
             : "Confirmar movimentação"
       }
       subtitle={
         mode === "settle"
           ? "Confirme o dia em que o dinheiro entrou ou saiu."
-          : `Fatura de ${monthLabel(month)}. Registre somente o valor que realmente foi transferido.`
+          : receivedFrom
+            ? "Informe o valor que recebeu. O repasse aparece em Lançamentos como receita confirmada."
+            : `Fatura de ${monthLabel(month)}. Registre somente o valor que realmente foi transferido.`
       }
       onClose={onClose}
     >
@@ -639,7 +655,9 @@ export function TransferForm({
         <TextInput
           className="cr-field"
           withAsterisk={false}
-          label={<>Valor recebido ou pago (R$)</>}
+          label={
+            receivedFrom ? "Valor recebido (R$)" : "Valor recebido ou pago (R$)"
+          }
           inputMode="decimal"
           required
           value={amount}

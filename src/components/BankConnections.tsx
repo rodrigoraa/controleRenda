@@ -1,21 +1,21 @@
-import { useEffect, useRef, useState } from "react";
 import { Landmark } from "lucide-react";
-import { Alert, NativeSelect } from "@mantine/core";
-import { ApiError, apiRequest } from "../lib/api";
+import { Alert } from "@mantine/core";
 import {
   bankNames,
+  isUnassignedBankPurchase,
   type BankAccount,
-  type BankOverview,
-  type BankPurchaseOwner,
   type BankResult,
 } from "../lib/bank-feed";
 import { dateLabel, money } from "../lib/finance";
-import { personOptions } from "../lib/people";
+import type { useBankConnections } from "../lib/use-bank-connections";
+import {
+  BankPurchaseOwnerSelect,
+  type SaveBankPurchaseOwner,
+} from "./BankPurchaseOwnerSelect";
 import type { Person } from "../lib/types";
 import "../ui/banks.css";
 
-const statusMessages: Record<BankResult["status"], string> = {
-  ready: "Dados disponíveis",
+const statusMessages: Record<Exclude<BankResult["status"], "ready">, string> = {
   partial: "Parte dos dados ficou indisponível",
   empty: "Nenhuma conta ou cartão compatível retornado",
   pending: "O MeuPluggy está atualizando a conexão",
@@ -32,100 +32,6 @@ const checkedAtFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-type SaveOwner = (key: string, owner: BankPurchaseOwner) => Promise<boolean>;
-const pendingOwnerWrites = new Map<
-  string,
-  Promise<{ owner: BankPurchaseOwner }>
->();
-
-function writePurchaseOwner(
-  accountId: string,
-  key: string,
-  owner: BankPurchaseOwner,
-) {
-  const scope = `${accountId}:${key}`;
-  const previous = pendingOwnerWrites.get(scope);
-  const send = () =>
-    apiRequest<{ owner: BankPurchaseOwner }>(
-      `/banks/purchases/${key}/owner`,
-      "PUT",
-      { owner },
-      accountId,
-    );
-  // Serialize writes even if navigation remounts the list before a response arrives.
-  const pending = previous ? previous.then(send, send) : send();
-  pendingOwnerWrites.set(scope, pending);
-  const clear = () => {
-    if (pendingOwnerWrites.get(scope) === pending)
-      pendingOwnerWrites.delete(scope);
-  };
-  void pending.then(clear, clear);
-  return pending;
-}
-
-function PurchaseOwnerSelect({
-  transaction,
-  people,
-  onSave,
-}: {
-  transaction: BankAccount["transactions"][number] & { purchaseKey: string };
-  people: Person[] | undefined;
-  onSave: SaveOwner;
-}) {
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [failed, setFailed] = useState(false);
-  const busy = useRef(false);
-  const owner = transaction.owner ?? "unknown";
-  const options = [
-    ...personOptions(people),
-    { id: "other", name: "Outra pessoa (sem nome)" },
-  ];
-  async function assign(value: BankPurchaseOwner) {
-    if (busy.current || value === owner) return;
-    busy.current = true;
-    setSaving(true);
-    setMessage("");
-    setFailed(false);
-    try {
-      if (await onSave(transaction.purchaseKey, value))
-        setMessage("Responsável salvo.");
-    } catch {
-      setFailed(true);
-      setMessage("Não foi possível salvar. Tente de novo.");
-    } finally {
-      setSaving(false);
-      busy.current = false;
-    }
-  }
-  return (
-    <div className="bank-owner" aria-busy={saving}>
-      <NativeSelect
-        label="Quem fez a compra?"
-        aria-label={`Responsável por ${transaction.description}`}
-        value={
-          owner.startsWith("person_") && !options.some(({ id }) => id === owner)
-            ? "other"
-            : owner
-        }
-        onChange={(event) =>
-          void assign(event.currentTarget.value as BankPurchaseOwner)
-        }
-        disabled={saving}
-        data={options.map(({ id, name }) => ({ value: id, label: name }))}
-      />
-      {message && (
-        <small
-          role={failed ? "alert" : "status"}
-          className={failed ? "negative" : undefined}
-        >
-          {message}
-        </small>
-      )}
-    </div>
-  );
-}
-
 function AccountReadout({
   account,
   index,
@@ -135,12 +41,12 @@ function AccountReadout({
   account: BankAccount;
   index: number;
   people: Person[] | undefined;
-  onSave: SaveOwner;
+  onSave: SaveBankPurchaseOwner;
 }) {
-  const unidentified = account.transactions.filter(
-    (transaction) =>
-      transaction.purchaseKey && (transaction.owner ?? "unknown") === "unknown",
-  ).length;
+  const unidentified =
+    account.kind === "credit"
+      ? account.transactions.filter(isUnassignedBankPurchase).length
+      : 0;
   return (
     <details className="bank-account">
       <summary>
@@ -171,7 +77,7 @@ function AccountReadout({
                   {money(transaction.amount)}
                 </strong>
                 {account.kind === "credit" && transaction.purchaseKey && (
-                  <PurchaseOwnerSelect
+                  <BankPurchaseOwnerSelect
                     transaction={{
                       ...transaction,
                       purchaseKey: transaction.purchaseKey,
@@ -192,91 +98,12 @@ function AccountReadout({
 }
 
 export function BankConnections({
-  accountId,
+  connection: { view, failed, listChanged, assign },
   people,
 }: {
-  accountId: string;
+  connection: ReturnType<typeof useBankConnections>;
   people?: Person[];
 }) {
-  const [view, setView] = useState<BankOverview | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [listChanged, setListChanged] = useState(false);
-  const [readRequest, requestRead] = useState(0);
-  const savedVersion = useRef(0);
-  useEffect(() => {
-    let active = true;
-    let pending = false;
-    async function read() {
-      if (pending || document.visibilityState === "hidden") return;
-      pending = true;
-      let version = savedVersion.current;
-      try {
-        const inProgress = [...pendingOwnerWrites.entries()]
-          .filter(([scope]) => scope.startsWith(`${accountId}:`))
-          .map(([, write]) => write);
-        if (inProgress.length) await Promise.allSettled(inProgress);
-        if (!active) return;
-        version = savedVersion.current;
-        const next = await apiRequest<BankOverview>(
-          "/banks",
-          "GET",
-          undefined,
-          accountId,
-        );
-        if (active && version === savedVersion.current) {
-          setView(next);
-          setFailed(false);
-        }
-      } catch {
-        if (active && version === savedVersion.current) setFailed(true);
-      } finally {
-        pending = false;
-      }
-    }
-    void read();
-    const interval = setInterval(() => void read(), 60_000);
-    window.addEventListener("focus", read);
-    return () => {
-      active = false;
-      clearInterval(interval);
-      window.removeEventListener("focus", read);
-    };
-  }, [accountId, readRequest]);
-
-  async function assign(key: string, owner: BankPurchaseOwner) {
-    const saved = await writePurchaseOwner(accountId, key, owner).catch(
-      (error: unknown) => {
-        if (!(error instanceof ApiError) || error.status !== 404) throw error;
-        savedVersion.current += 1;
-        setListChanged(true);
-        requestRead((value) => value + 1);
-        return null;
-      },
-    );
-    if (!saved) return false;
-    setListChanged(false);
-    savedVersion.current += 1;
-    setView((current) =>
-      current?.enabled
-        ? {
-            ...current,
-            banks: current.banks.map((bank) => ({
-              ...bank,
-              accounts: bank.accounts.map((account) => ({
-                ...account,
-                transactions: account.transactions.map((transaction) =>
-                  transaction.purchaseKey === key
-                    ? { ...transaction, owner: saved.owner }
-                    : transaction,
-                ),
-              })),
-            })),
-          }
-        : current,
-    );
-    return true;
-  }
-
   return (
     <section
       className="panel bank-connections"
@@ -311,20 +138,16 @@ export function BankConnections({
         </p>
       ) : (
         <>
-          {view.checkedAt && (
-            <p className="bank-checked">
-              Consultado pelo Controle Renda em{" "}
-              {checkedAtFormatter.format(new Date(view.checkedAt))}
-            </p>
-          )}
           <div className="bank-list">
             {view.banks.map((bank) => (
               <section className="bank-institution" key={bank.institution}>
                 <h3>{bankNames[bank.institution]}</h3>
-                <p>{statusMessages[bank.status]}</p>
+                {bank.status !== "ready" && (
+                  <p>{statusMessages[bank.status]}</p>
+                )}
                 {bank.providerUpdatedAt && (
                   <p>
-                    Atualizado no MeuPluggy em{" "}
+                    Dados atualizados em{" "}
                     {checkedAtFormatter.format(
                       new Date(bank.providerUpdatedAt),
                     )}

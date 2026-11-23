@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import {
   Alert,
   Button,
+  Checkbox,
   NativeSelect,
   Pagination,
   Table,
@@ -25,9 +26,7 @@ import { ValidatedForm } from "../ui/ValidatedForm";
 
 const monthsPerPage = 6;
 type Scenario = PurchaseScenario & {
-  cardCount: number;
-  firstInvoice: string;
-  reserve: number;
+  comparison?: { cardCount: number; firstInvoice: string; reserve: number };
 };
 const paymentLabels = {
   today: "Pagar à vista hoje",
@@ -123,6 +122,8 @@ export function PurchaseSimulator({
       ? state.settings.initialMonth
       : currentMonth;
   const [method, setMethod] = useState<PurchaseScenario["method"]>("account");
+  const [compareCard, setCompareCard] = useState(false);
+  const showComparison = method === "card" || compareCard;
   const nextInvoice =
     dateInMonth(start, state.settings.invoiceDay) < today
       ? addMonths(start, 1)
@@ -142,13 +143,15 @@ export function PurchaseSimulator({
     () =>
       scenario && {
         monthly: simulatePurchase(state, scenario, currentMonth),
-        comparison: comparePaymentOptions(state, {
-          today,
-          amount: scenario.amount,
-          count: scenario.cardCount,
-          reserve: scenario.reserve,
-          firstInvoice: scenario.firstInvoice,
-        }),
+        comparison:
+          scenario.comparison &&
+          comparePaymentOptions(state, {
+            today,
+            amount: scenario.amount,
+            count: scenario.comparison.cardCount,
+            reserve: scenario.comparison.reserve,
+            firstInvoice: scenario.comparison.firstInvoice,
+          }),
       },
     [state, scenario, currentMonth, today],
   );
@@ -165,8 +168,10 @@ export function PurchaseSimulator({
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     const amount = parseMoney(String(fields.get("amount")));
-    const cardCount = Number(fields.get("count"));
-    const reserve = parseMoney(String(fields.get("reserve")).trim() || "0");
+    const cardCount = Number(fields.get("count") ?? 1);
+    const reserve = parseMoney(
+      String(fields.get("reserve") ?? "").trim() || "0",
+    );
     const amountField = event.currentTarget.elements.namedItem(
       "amount",
     ) as HTMLInputElement;
@@ -191,15 +196,15 @@ export function PurchaseSimulator({
     setAmountError("");
     setReserveError("");
     setPage(1);
-    const firstInvoice = String(fields.get("firstInvoice"));
+    const firstInvoice = String(fields.get("firstInvoice") ?? nextInvoice);
     setScenario({
       amount,
-      cardCount,
       count: method === "card" ? cardCount : 1,
       method,
       month: method === "card" ? firstInvoice : String(fields.get("month")),
-      firstInvoice,
-      reserve,
+      comparison: showComparison
+        ? { cardCount, firstInvoice, reserve }
+        : undefined,
     });
   }
 
@@ -247,35 +252,48 @@ export function PurchaseSimulator({
               data={paymentMonths}
             />
           )}
-          <NativeSelect
-            name="firstInvoice"
-            label={
-              method === "account"
-                ? "Primeira fatura para comparar"
-                : "Mês da primeira fatura"
-            }
-            data={invoiceMonths}
-            defaultValue={nextInvoice}
-          />
-          <TextInput
-            name="count"
-            label={method === "account" ? "Parcelas para comparar" : "Parcelas"}
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={120}
-            step={1}
-            defaultValue={1}
-            required
-          />
-          <TextInput
-            name="reserve"
-            label="Reserva mínima (R$)"
-            description="Quanto você quer manter disponível."
-            inputMode="decimal"
-            placeholder="0,00"
-            error={reserveError || undefined}
-          />
+          {method === "account" && (
+            <Checkbox
+              label="Comparar com cartão"
+              checked={compareCard}
+              onChange={(event) => setCompareCard(event.currentTarget.checked)}
+            />
+          )}
+          {showComparison && (
+            <>
+              <NativeSelect
+                name="firstInvoice"
+                label={
+                  method === "account"
+                    ? "Primeira fatura para comparar"
+                    : "Mês da primeira fatura"
+                }
+                data={invoiceMonths}
+                defaultValue={nextInvoice}
+              />
+              <TextInput
+                name="count"
+                label={
+                  method === "account" ? "Parcelas para comparar" : "Parcelas"
+                }
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={120}
+                step={1}
+                defaultValue={1}
+                required
+              />
+              <TextInput
+                name="reserve"
+                label="Reserva mínima (R$)"
+                description="Quanto você quer manter disponível."
+                inputMode="decimal"
+                placeholder="0,00"
+                error={reserveError || undefined}
+              />
+            </>
+          )}
           <Button
             className="button primary"
             type="submit"
@@ -286,11 +304,11 @@ export function PurchaseSimulator({
         </ValidatedForm>
       </section>
       <div className="purchase-output">
-        {result && scenario && (
+        {result?.comparison && scenario?.comparison && (
           <PaymentComparison
             comparison={result.comparison}
-            reserve={scenario.reserve}
-            count={scenario.cardCount}
+            reserve={scenario.comparison.reserve}
+            count={scenario.comparison.cardCount}
           />
         )}
         <section

@@ -1,12 +1,6 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
-import { Badge, Button } from "@mantine/core";
-import {
-  ArrowRight,
-  CalendarDays,
-  CheckCircle2,
-  ListTodo,
-  TriangleAlert,
-} from "lucide-react";
+import { Alert, Badge, Button } from "@mantine/core";
+import { ArrowRight, CalendarDays, CheckCircle2, ListTodo } from "lucide-react";
 import {
   dateLabel,
   forecastNext30Days,
@@ -14,6 +8,11 @@ import {
   monthLabel,
 } from "../lib/finance";
 import type { collectAttention } from "../lib/attention";
+import { bankNames, type unassignedBankPurchases } from "../lib/bank-feed";
+import {
+  BankPurchaseOwnerSelect,
+  type SaveBankPurchaseOwner,
+} from "./BankPurchaseOwnerSelect";
 import type { Entry, Occurrence, State } from "../lib/types";
 import { OwnerSelect } from "./PersonControls";
 import "../ui/planning.css";
@@ -48,19 +47,17 @@ export function DailyBalance({
       </div>
       <div className="cash-metrics">
         <div>
-          <span>Menor saldo previsto</span>
+          <span>
+            {plan.lowest.balance < 0
+              ? "Há risco de faltar dinheiro"
+              : "Menor saldo previsto"}
+          </span>
           <strong className={plan.lowest.balance < 0 ? "negative" : undefined}>
             {money(plan.lowest.balance)}
           </strong>
           <small>{dateLabel(plan.lowest.date)}</small>
         </div>
       </div>
-      {plan.lowest.balance < 0 && (
-        <p className="cash-warning">
-          <TriangleAlert size={17} aria-hidden="true" /> Há risco de faltar
-          dinheiro em {dateLabel(plan.lowest.date)}.
-        </p>
-      )}
       {plan.days.length > 0 ? (
         <ol
           className="plan-list"
@@ -136,9 +133,13 @@ export function DailyBalance({
 
 export function AttentionPreview({
   total,
+  status,
+  action,
   onOpen,
 }: {
   total: number;
+  status?: string;
+  action: string;
   onOpen: () => void;
 }) {
   return (
@@ -149,18 +150,23 @@ export function AttentionPreview({
       <ListTodo size={22} aria-hidden="true" />
       <div>
         <h2 id="attention-preview-title">Pendências</h2>
-        <p>
-          {total
-            ? `${total} ${total === 1 ? "item para conferir" : "itens para conferir"}`
-            : "Nenhuma pendência agora"}
-        </p>
+        {total > 0 && (
+          <p>
+            {total} {total === 1 ? "item para conferir" : "itens para conferir"}
+          </p>
+        )}
+        {status ? (
+          <p role="status">{status}</p>
+        ) : (
+          total === 0 && <p>Nenhuma pendência agora</p>
+        )}
       </div>
       <Button
         variant="default"
         rightSection={<ArrowRight size={16} />}
         onClick={onOpen}
       >
-        Ver pendências
+        {action}
       </Button>
     </section>
   );
@@ -202,6 +208,10 @@ function AttentionGroup<T>({
 
 export function AttentionPage({
   attention,
+  bankPurchases,
+  bankStatus,
+  bankListChanged,
+  onBankAssign,
   today,
   people,
   saving,
@@ -211,6 +221,10 @@ export function AttentionPage({
   onTransfer,
 }: {
   attention: ReturnType<typeof collectAttention>;
+  bankPurchases: ReturnType<typeof unassignedBankPurchases>;
+  bankStatus?: string;
+  bankListChanged: boolean;
+  onBankAssign: SaveBankPurchaseOwner;
   today: string;
   people: State["people"];
   saving: boolean;
@@ -225,19 +239,51 @@ export function AttentionPage({
       : date === today
         ? "Previsto para hoje"
         : `Previsto para ${dateLabel(date)}`;
-  if (!attention.total)
+  if (
+    !attention.total &&
+    bankPurchases.length === 0 &&
+    !bankStatus &&
+    !bankListChanged
+  )
     return (
       <div className="panel quiet-state" role="status">
         <CheckCircle2 size={29} aria-hidden="true" />
         <strong>Tudo em dia por aqui.</strong>
-        <p>
-          Contas próximas do vencimento, compras sem responsável e repasses
-          pendentes aparecem nesta área.
-        </p>
+        <p>Nenhum item para conferir nos dados disponíveis.</p>
       </div>
     );
   return (
     <div className="attention-grid">
+      {bankStatus && (
+        <Alert variant="light" role="status">
+          {bankStatus}
+        </Alert>
+      )}
+      {bankListChanged && (
+        <Alert color="yellow" variant="light" role="status">
+          A lista de compras mudou. Estamos consultando os bancos de novo.
+        </Alert>
+      )}
+      <AttentionGroup
+        title="Compras dos bancos sem responsável"
+        items={bankPurchases}
+        renderItem={(purchase) => (
+          <li className="attention-item" key={purchase.purchaseKey}>
+            <div>
+              <strong>{purchase.description}</strong>
+              <small>
+                {bankNames[purchase.institution]} · {dateLabel(purchase.date)}
+              </small>
+            </div>
+            <strong>{money(purchase.amount)}</strong>
+            <BankPurchaseOwnerSelect
+              transaction={purchase}
+              people={people}
+              onSave={onBankAssign}
+            />
+          </li>
+        )}
+      />
       <AttentionGroup
         title="Movimentações a confirmar"
         items={attention.movements}
