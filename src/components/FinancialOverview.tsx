@@ -295,23 +295,21 @@ export function FinancialOverview({
         </div>
 
         <div className="fo-all-cards-grid">
-          {/* Card Crédito: Cartão do orçamento */}
           <section
             aria-labelledby="fo-card"
             className="fo-card-box credit"
           >
             <div className="fo-card-box-header">
-              <Badge variant="filled" color="indigo" size="sm" className="fo-type-pill credit">
+              <Badge variant="light" color="indigo" size="sm" className="fo-type-pill">
                 <CreditCard size={13} aria-hidden="true" /> CRÉDITO
               </Badge>
               <span className="fo-nature-label">DESPESAS DA FATURA</span>
             </div>
             <div className="fo-card-box-body">
-              <h2 id="fo-card" className="fo-card-heading">
-                Cartão do orçamento
-              </h2>
+              <h3 id="fo-card" className="fo-card-title">
+                {state.settings.cardName}
+              </h3>
               <small className="fo-card-meta">
-                {`${state.settings.cardName} · `}
                 Vencimento: dia {state.settings.invoiceDay}
               </small>
             </div>
@@ -360,7 +358,7 @@ export function FinancialOverview({
 
             <div className="fo-card-box-action">
               <UnstyledButton className="text-button" onClick={onCard}>
-                Ver compras e pagamentos do orçamento <ArrowRight size={16} />
+                Ver compras e pagamentos <ArrowRight size={16} />
               </UnstyledButton>
             </div>
           </section>
@@ -389,8 +387,8 @@ export function FinancialOverview({
                   <div key={detail.id} className="fo-connected-card-detail">
                     <div className="fo-card-box-header">
                       <Badge
-                        variant="filled"
-                        color={detail.isCredit ? "indigo" : "teal"}
+                        variant="light"
+                        color={detail.isCredit ? "indigo" : "finance"}
                         size="sm"
                         className="fo-type-pill"
                       >

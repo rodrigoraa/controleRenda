@@ -11,6 +11,7 @@ afterEach(() => vi.unstubAllGlobals());
 it("mantém o resumo de hoje e atualiza a previsão para o mês seguinte ao selecionado", async () => {
   const state = createEmptyState("2026-11");
   state.settings.openingBalance = 50000;
+  state.settings.cardName = "Cartão da família";
   state.people = [{ id: "person_ana", name: "Ana" }];
   const entry = (
     value: Partial<Entry> & Pick<Entry, "id" | "amount">,
@@ -63,7 +64,8 @@ it("mantém o resumo de hoje e atualiza a previsão para o mês seguinte ao sele
   ).toBeInTheDocument();
   const balance = screen.getByRole("region", { name: "Saldo disponível hoje" });
   const flow = screen.getByRole("region", { name: /Previsão para o mês atual/ });
-  const card = screen.getByRole("region", { name: "Cartão do orçamento" });
+  const card = screen.getByRole("region", { name: "Cartão da família" });
+  expect(within(card).getByRole("heading", { name: "Cartão da família" })).toBeInTheDocument();
   const forecast = screen.getByRole("region", {
     name: "Previsão do próximo mês",
   });

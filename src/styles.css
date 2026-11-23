@@ -264,6 +264,7 @@ svg {
   background: var(--cr-primary);
 }
 .main-shell {
+  --cr-page-gutter: clamp(24px, 2.25vw, 48px);
   margin-left: 232px;
 }
 .topbar {
@@ -272,7 +273,7 @@ svg {
   justify-content: space-between;
   gap: 15px;
   min-height: 74px;
-  padding: 12px 32px;
+  padding: 12px var(--cr-page-gutter);
   background: var(--cr-surface);
   border-bottom: 1px solid var(--cr-border);
 }
@@ -334,9 +335,7 @@ svg {
   display: none;
 }
 .main-content {
-  max-width: 78rem;
-  margin: auto;
-  padding: 34px 32px 16px;
+  padding: 34px var(--cr-page-gutter) 16px;
 }
 .page-heading {
   display: flex;
@@ -1437,7 +1436,7 @@ svg {
 }
 @media (max-width: 1150px) and (min-width: 901px) {
   .main-content {
-    padding: 28px 24px 16px;
+    padding-top: 28px;
   }
   .metrics-grid {
     gap: 12px;

@@ -32,11 +32,6 @@
   flex: none;
 }
 
-.fo-balance {
-  background: var(--cr-tint);
-  border-color: var(--cr-primary);
-}
-
 .fo-amount {
   display: block;
   margin: 8px 0;
@@ -168,18 +163,19 @@
   position: relative;
 }
 
-.fo-card-box.debit {
-  background: linear-gradient(180deg, var(--cr-surface) 0%, rgba(23, 100, 81, 0.05) 100%);
-  border-color: #bfe5d1;
+.fo-card-box.debit,
+.fo-card-box.combined {
+  background: linear-gradient(
+    var(--cr-surface),
+    color-mix(in srgb, var(--cr-surface), var(--cr-tint) 55%)
+  );
 }
 
 .fo-card-box.credit {
-  background: linear-gradient(180deg, var(--cr-surface) 0%, rgba(99, 102, 241, 0.05) 100%);
-  border-color: #cbd5e1;
-}
-
-.fo-card-box.combined {
-  background: linear-gradient(180deg, var(--cr-surface), rgba(23, 100, 81, 0.05));
+  background: linear-gradient(
+    var(--cr-surface),
+    color-mix(in srgb, var(--cr-surface), var(--mantine-color-indigo-light-color) 5%)
+  );
 }
 
 .fo-connected-card-detail + .fo-connected-card-detail {
@@ -206,10 +202,6 @@
   letter-spacing: 0.5px;
 }
 
-.fo-type-pill.credit {
-  background-color: #4f46e5;
-}
-
 .fo-nature-label {
   font-size: 0.75rem;
   font-weight: 700;
@@ -232,6 +224,7 @@
 }
 
 .fo-card-title {
+  overflow-wrap: anywhere;
   font-size: 1.05rem;
   margin: 0;
   font-weight: 700;
@@ -327,7 +320,7 @@
 }
 
 .fo-month-pill {
-  flex: 0 0 160px;
+  flex: 1 0 10rem;
   background: var(--cr-surface);
   border: 1.5px solid var(--cr-border);
   border-radius: var(--cr-rounded, 0.75rem);
@@ -342,12 +335,12 @@
 
 .fo-month-pill:hover {
   border-color: var(--cr-primary);
-  background: var(--cr-tint, #f0f7f4);
+  background: var(--cr-tint);
 }
 
 .fo-month-pill.selected {
   border-color: var(--cr-primary);
-  background: var(--cr-tint, #f0f7f4);
+  background: var(--cr-tint);
   box-shadow: 0 0 0 1.5px var(--cr-primary);
 }
 
@@ -379,6 +372,8 @@
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 6px;
 }
 
 .fo-pill-item span {
@@ -449,8 +444,8 @@
 }
 
 .fo-metric-tile.balance {
-  background: var(--cr-tint, #f0f7f4);
-  border-color: #bfe5d1;
+  background: var(--cr-tint);
+  border-color: color-mix(in srgb, var(--cr-border), var(--cr-primary) 20%);
 }
 
 .fo-metric-tile.movements {
@@ -564,24 +559,17 @@
   gap: 6px;
 }
 
-.fo-next-tile.income {
-  background: var(--cr-tint, #f0f7f4);
-  border-color: #bfe5d1;
-}
-
-.fo-next-tile.expense {
-  background: #fdf5f5;
-  border-color: #f7d4d4;
-}
-
+.fo-next-tile.income,
+.fo-next-tile.fo-balance,
 .fo-next-tile.total.positive {
-  background: #f4fbf7;
-  border-color: #a7e4c3;
+  background: var(--cr-tint);
+  border-color: color-mix(in srgb, var(--cr-border), var(--cr-primary) 20%);
 }
 
+.fo-next-tile.expense,
 .fo-next-tile.total.negative {
-  background: #fdf2f2;
-  border-color: #f8c3c3;
+  background: var(--cr-danger-bg);
+  border-color: color-mix(in srgb, var(--cr-border), var(--cr-danger) 20%);
 }
 
 .fo-next-label {
