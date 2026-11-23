@@ -41,7 +41,7 @@ it("permite editar a data e abre o mês correto depois de salvar", async () => {
     within(screen.getByRole("table")).getByText("08/12", { exact: false }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Voltar para hoje" }),
+    screen.getByRole("button", { name: "Voltar ao mês atual" }),
   ).toBeInTheDocument();
 });
 it("permite corrigir a data de recebimento de uma receita já confirmada", async () => {

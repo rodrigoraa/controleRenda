@@ -1,0 +1,189 @@
+.financial-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fo-panel {
+  min-width: 0;
+}
+
+.fo-panel h2 {
+  font-size: 1.125rem;
+  margin: 0 0 6px;
+}
+
+.fo-panel p {
+  color: var(--cr-muted);
+  font-size: 0.875rem;
+  margin: 4px 0;
+}
+
+.fo-panel .text-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  text-align: left;
+}
+
+.fo-panel .text-button svg {
+  flex: none;
+}
+
+.fo-balance {
+  background: var(--cr-tint);
+  border-color: var(--cr-primary);
+}
+
+.fo-amount {
+  display: block;
+  margin: 8px 0;
+  font: 750 clamp(1.75rem, 5vw, 2.6rem) / 1.15 var(--cr-display);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.fo-flow-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 12px 0 2px;
+}
+
+.fo-flow-values > div {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.fo-flow-values dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fo-flow-values dd {
+  font-size: 1.25rem;
+}
+
+.fo-flow-values dd,
+.fo-parts dd {
+  margin: 2px 0 0;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.fo-parts {
+  margin: 8px 0 0;
+}
+
+.fo-parts > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px 12px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+  overflow-wrap: anywhere;
+}
+
+.fo-total {
+  border-bottom: 1px solid var(--cr-border);
+  font-weight: 750;
+}
+
+.fo-parts small {
+  color: var(--cr-muted);
+}
+
+.fo-cards h3 {
+  font-size: 0.95rem;
+  margin: 14px 0 0;
+}
+
+.financial-overview .attention-preview {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.fo-demo {
+  justify-self: start;
+}
+
+.plan-projection {
+  margin-top: 20px;
+}
+
+.recurring-toggle {
+  min-height: 44px;
+}
+
+@media (max-width: 650px) {
+  .financial-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card-settlement {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 12px 20px;
+  margin-bottom: 16px;
+}
+
+.card-settlement p,
+.card-settlement small,
+.card-settlement span {
+  color: var(--cr-muted);
+  font-size: 0.875rem;
+}
+
+.card-settlement strong {
+  display: block;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.card-settlement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.topbar .local-status {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.monthly-projection > div {
+  border-bottom: 1px solid var(--cr-border);
+  min-height: 44px;
+}
+
+.monthly-projection > div:last-child {
+  border-bottom: 0;
+}
+
+.monthly-projection time {
+  text-transform: capitalize;
+}
+
+.fo-cards > section + section,
+.fo-cards > .fo-card-link {
+  border-top: 1px solid var(--cr-border);
+  padding-top: 12px;
+}
+
+.fo-card-link {
+  width: 100%;
+}
+
+.topbar .local-status[data-offline] .status-dot {
+  background: var(--cr-danger);
+}

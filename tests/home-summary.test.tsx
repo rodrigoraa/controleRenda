@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import App from "../src/App";
 import { createEmptyState } from "../src/lib/validation";
 
-it("mostra a margem, o risco e até três movimentos antes dos detalhes", async () => {
+it("deixa a linha do tempo em Planejar e o saldo atual na Visão Geral", async () => {
   const state = createEmptyState("2026-11");
   state.settings.openingBalance = 50000;
   state.entries = ["Aluguel", "Telefone", "Luz", "Internet"].map(
@@ -31,14 +31,9 @@ it("mostra a margem, o risco e até três movimentos antes dos detalhes", async 
       }}
     />,
   );
-  const margin = screen.getByRole("region", {
-    name: "Quanto posso gastar hoje?",
-  });
-  expect(margin).toHaveTextContent("R$ 0,00");
-  expect(margin).toHaveTextContent("R$ 20,00");
-  const upcoming = screen.getByRole("region", { name: "O que vem a seguir?" });
-  expect(within(upcoming).getAllByRole("listitem")).toHaveLength(3);
-  expect(within(upcoming).queryByText("Internet")).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("region", { name: "Saldo disponível hoje" }),
+  ).toHaveTextContent("R$ 500,00");
   expect(
     screen.queryByRole("heading", {
       name: "Saldo acumulado nos próximos meses",
@@ -46,13 +41,16 @@ it("mostra a margem, o risco e até três movimentos antes dos detalhes", async 
   ).not.toBeInTheDocument();
   await userEvent
     .setup()
-    .click(within(upcoming).getByRole("button", { name: "Ver próximos dias" }));
-  expect(
-    screen.getByRole("heading", {
-      name: "Saldo ao longo dos próximos 30 dias",
-    }),
-  ).toBeInTheDocument();
+    .click(screen.getByRole("button", { name: "Ver próximos dias" }));
+  const timeline = screen.getByRole("region", {
+    name: "Saldo ao longo dos próximos 30 dias",
+  });
+  expect(within(timeline).getByText("Internet")).toBeInTheDocument();
+  expect(timeline).toHaveTextContent("Há risco de faltar dinheiro");
   expect(
     screen.getByRole("heading", { name: "Saldo acumulado nos próximos meses" }),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("region", { name: "Saldo disponível hoje" }),
+  ).not.toBeInTheDocument();
 });

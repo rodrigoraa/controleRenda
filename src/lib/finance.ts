@@ -40,8 +40,7 @@ export const monthLabel = (month: string, short = false) =>
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${month}-15T12:00:00Z`));
-export const localDate = () => {
-  const d = new Date();
+export const localDate = (d = new Date()) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 export const shortDate = (date: string) =>
@@ -252,16 +251,22 @@ export function summarize(state: State, month: string, today: string): Summary {
     rows.filter(filter).reduce((s, e) => s + e.amount, 0);
   const bill = invoice(state, month);
   const monthEvents = events.filter((event) => monthOf(event.date) === month);
-  const inflows = monthEvents
-    .filter((event) => event.amount > 0)
-    .reduce((sum, event) => sum + event.amount, 0);
-  const outflows = monthEvents
-    .filter((event) => event.amount < 0)
-    .reduce((sum, event) => sum - event.amount, 0);
+  const [inflows, outflows] = totals(monthEvents);
+  const [confirmedInflows, confirmedOutflows] = totals(
+    monthEvents.filter((event) => event.actual && event.date <= today),
+  );
+  function totals(movements: typeof events) {
+    return [
+      movements.reduce((sum, { amount }) => sum + Math.max(0, amount), 0),
+      movements.reduce((sum, { amount }) => sum - Math.min(0, amount), 0),
+    ];
+  }
   return {
     starting: at(addMonths(month, -1)),
     inflows,
     outflows,
+    confirmedInflows,
+    confirmedOutflows,
     monthlyChange: inflows - outflows,
     nextMonthlyChange: at(addMonths(month, 1)) - at(month),
     available:

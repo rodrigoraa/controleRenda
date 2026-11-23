@@ -47,11 +47,13 @@ Filtros ficam recolhidos até 650px sob “Filtros e ordenação”, com contado
 
 ## Navigation and responsive behavior
 
-O Simulador abre pela navegação principal, pelo Início e pela linha do tempo em Planejar. O cenário fica em memória nessa tela, compara saldos de fim de mês usando as regras de previsão e agrupa os resultados de seis em seis meses. O controle de tema aparece no cabeçalho e na tela de login. Apenas a preferência de tema é compartilhada no navegador.
+Simular compra abre pela navegação principal e pela linha do tempo em Planejar. O cenário fica em memória nessa tela, compara saldos de fim de mês usando as regras de previsão e agrupa os resultados de seis em seis meses. O controle de tema aparece no cabeçalho e na tela de login. Apenas a preferência de tema é compartilhada no navegador.
 
 A linha do tempo parte do saldo confirmado e cobre 30 dias a partir de hoje ou do início do orçamento. Contas vencidas entram no primeiro dia; receitas vencidas só contam quando confirmadas. Saídas são consideradas antes de entradas no mesmo dia. O simulador usa esses critérios na comparação com a reserva e mantém a previsão acumulada mensal separada. Pendências reúne movimentações e faturas até sete dias à frente, compras sem responsável de faturas até o mês atual e repasses devidos ao vencimento da fatura. As ações usam os fluxos de confirmação e atribuição existentes.
 
-O Início resume margem estimada, próximos movimentos e pendências. **Ver próximos dias** abre Planejar. O atalho Bancos aparece na navegação da conta real, e a opção **Abrir cartão do orçamento** leva à fatura lançada no aplicativo. O botão central no celular continua abrindo Novo lançamento. Navegação expõe aria-current e nome da aba `{Página} · Controle Renda`, sem valores pessoais. O mês fica preservado ao navegar entre telas. O documento rola; tabelas só usam overflow próprio se necessário. Modais não excedem visualViewport e safe areas; ações continuam alcançáveis com teclado aberto.
+Visão Geral é a tela inicial e reúne o saldo de hoje, a movimentação confirmada, as faturas por responsável, a previsão do mês seguinte e o acesso a Pendências. O mês fica preservado ao navegar e muda a movimentação, as faturas e a previsão; o saldo de hoje permanece fixo. Saldos bancários e valores do orçamento ficam identificados pela fonte. Sem cobertura bancária desde o início do mês, Entradas e saídas mostra o orçamento confirmado. Faturas conectadas usam o mês do vencimento e atribuem somente compras recentes com vínculo informado pelo provedor.
+
+Planejar reúne a linha do tempo dos próximos dias e a previsão mensal. Lançamentos concentra a lista e o filtro **Só recorrentes**. Cartão compartilhado reúne compras do orçamento, pagamentos e repasses. Bancos mostra extratos e permite identificar as compras conectadas. No celular, o botão central abre Novo lançamento e **Mais** abre a navegação complementar. Navegação expõe aria-current e nome da aba `{Página} · Controle Renda`, sem valores pessoais. O documento rola; tabelas só usam overflow próprio se necessário. Modais não excedem visualViewport e safe areas; ações continuam alcançáveis com teclado aberto.
 
 Em Bancos, o seletor de responsável aparece em débitos de cartão. O valor mostrado muda após a confirmação do servidor e a seleção anterior permanece em caso de erro. **A identificar** limpa a escolha. Essa ação registra apenas a atribuição da compra bancária e preserva o orçamento.
 
@@ -69,4 +71,4 @@ ValidatedForm usa noValidate, validade HTML e mensagens localizadas próprias, a
 
 ## Verification
 
-npm test (PostgreSQL separado), npm run typecheck, npm run build, lint de DESIGN.md e auditoria estática premium. Chromium 320/390/768/1280, teclado440px, navegação por teclado, seleção nativa aberta, estados vazio/erro/conflito/sessão. Os fluxos canônicos são os mesmos do guia e das suites existentes. Não alterar backend/esquema nesta migração visual.
+npm test (PostgreSQL separado), npm run typecheck, npm run build, lint de DESIGN.md e auditoria estática premium. Chromium 320/390/768/1280, teclado440px, navegação por teclado, seleção nativa aberta, estados vazio/erro/conflito/sessão. Os fluxos canônicos são os mesmos do guia e das suites existentes.

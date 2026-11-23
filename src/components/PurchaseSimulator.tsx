@@ -249,13 +249,17 @@ export function PurchaseSimulator({
           )}
           <NativeSelect
             name="firstInvoice"
-            label="Mês da primeira fatura"
+            label={
+              method === "account"
+                ? "Primeira fatura para comparar"
+                : "Mês da primeira fatura"
+            }
             data={invoiceMonths}
             defaultValue={nextInvoice}
           />
           <TextInput
             name="count"
-            label="Parcelas"
+            label={method === "account" ? "Parcelas para comparar" : "Parcelas"}
             type="number"
             inputMode="numeric"
             min={1}
@@ -294,10 +298,7 @@ export function PurchaseSimulator({
           aria-labelledby="purchase-results"
         >
           <div className="panel-heading">
-            <div>
-              <h2 id="purchase-results">Saldo previsto mês a mês</h2>
-              <p>Compare o saldo acumulado no fim de cada mês.</p>
-            </div>
+            <h2 id="purchase-results">Saldo no fim de cada mês</h2>
           </div>
           {result && scenario && first ? (
             <>

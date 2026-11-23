@@ -77,7 +77,7 @@ A aplicação confia em um único salto de proxy e só está exposta na interfac
 
 ## Uso inicial
 
-1. Em **Configurações e dados**, defina o mês, o cartão e o vencimento. Em **Início → Informar saldo de hoje**, informe o valor da conta.
+1. Em **Configurações e dados**, defina o mês, o cartão e o vencimento. Em **Visão Geral → Informar saldo de hoje**, informe o valor da conta.
 2. Cadastre salário, bolsa e pagamento do sistema como **Receita → Todo mês**, conferindo a data do primeiro recebimento.
 3. Cadastre contas e compras. No cartão, a data pertence ao mês da primeira fatura; informe o valor total para parcelar.
 4. Identifique as compras da sua mãe e registre o Pix quando entrar. Registre o pagamento da fatura separadamente.

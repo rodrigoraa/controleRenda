@@ -6,40 +6,31 @@ import {
   Portal,
   Drawer,
 } from "@mantine/core";
-import { OverviewSummary } from "./components/OverviewSummary";
-import { Home } from "./components/Home";
+import { FinancialOverview } from "./components/FinancialOverview";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  ArrowRight,
   Calculator,
   CalendarDays,
   Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  CircleHelp,
-  Clock3,
   CreditCard,
   Download,
   FlaskConical,
-  Heart,
   LayoutDashboard,
   Landmark,
-  Leaf,
   ListTodo,
-  Menu,
   Pencil,
   Plus,
-  Repeat2,
   Search,
   Settings2,
   ShieldCheck,
   Trash2,
   TrendingUp,
   Upload,
-  UserRound,
   Users,
   Wallet,
   X,
@@ -100,7 +91,6 @@ type Page =
   | "banks"
   | "entries"
   | "card"
-  | "recurring"
   | "simulator"
   | "attention"
   | "settings";
@@ -123,14 +113,13 @@ function retainReusableDraft(current: Dialog): Dialog {
     : null;
 }
 const navigation: { id: Page; label: string; icon: LucideIcon }[] = [
-  { id: "overview", label: "Início", icon: LayoutDashboard },
+  { id: "overview", label: "Visão Geral", icon: LayoutDashboard },
   { id: "entries", label: "Lançamentos", icon: ArrowDownLeft },
   { id: "banks", label: "Bancos", icon: Landmark },
   { id: "planning", label: "Planejar", icon: CalendarDays },
   { id: "card", label: "Cartão compartilhado", icon: CreditCard },
   { id: "attention", label: "Pendências", icon: ListTodo },
-  { id: "recurring", label: "Recorrências", icon: Repeat2 },
-  { id: "simulator", label: "Simulador", icon: Calculator },
+  { id: "simulator", label: "Simular compra", icon: Calculator },
 ];
 export default function App({
   today = localDate(),
@@ -163,6 +152,7 @@ export default function App({
     [menu, setMenu] = useState(false),
     [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all");
+  const [recurringOnly, setRecurringOnly] = useState(false);
   const dialogRef = useRef(dialog);
   dialogRef.current = dialog;
   const dataModeRef = useRef(0);
@@ -173,6 +163,8 @@ export default function App({
   const [transactionFilters, setTransactionFilters] = useState(
     defaultTransactionFilters,
   );
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const focusPage = useRef(false);
   const importRef = useRef<HTMLInputElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const rows = useMemo(() => occurrences(state, month), [state, month]);
@@ -185,7 +177,6 @@ export default function App({
     () => collectAttention(state, today),
     [state, today],
   );
-  const monthName = monthLabel(month).split(" de ")[0];
   useEffect(() => {
     if (dialog) setNotice(null);
   }, [dialog]);
@@ -289,18 +280,14 @@ export default function App({
     setDialog((current) => (current === origin ? null : current));
   }
   function navigate(next: Page) {
+    focusPage.current = next !== page;
     setPage(next);
     setFilter("all");
     setSearch("");
     setTransactionFilters(defaultTransactionFilters);
+    setRecurringOnly(false);
     setMenu(false);
-    if (
-      window.matchMedia?.("(max-width: 900px)").matches ||
-      (["overview", "planning", "banks", "simulator", "attention"].includes(
-        next,
-      ) &&
-        window.scrollY > 0)
-    )
+    if (next !== page && window.scrollY > 0)
       window.scrollTo({ top: 0, behavior: "instant" });
   }
   async function saveEntry(
@@ -338,7 +325,6 @@ export default function App({
         if (dialogRef.current !== origin) return;
         if (moved) {
           setMonth(monthOf(entry.date));
-          if (page === "recurring") navigate("entries");
         }
         closeSavedDialog(origin);
       }
@@ -567,7 +553,7 @@ export default function App({
     rows.filter(
       (row) =>
         (page !== "card" || row.method === "card") &&
-        (page !== "recurring" || row.repeat === "monthly"),
+        (!recurringOnly || row.repeat === "monthly"),
     ),
     listFilters,
     bill.outstanding === 0,
@@ -605,54 +591,28 @@ export default function App({
     );
     navigate("overview");
   }
-  const titles: Record<Page, { title: string; subtitle: string }> = {
-    overview: {
-      title: "Início",
-      subtitle: "",
-    },
-    planning: {
-      title: "Planejar",
-      subtitle: "Confira os próximos vencimentos e a previsão de cada mês.",
-    },
-    banks: {
-      title: "Bancos",
-      subtitle: "Saldos e movimentações informados pelos bancos conectados.",
-    },
-    entries: {
-      title: "Cada movimento, no seu lugar.",
-      subtitle: "Receitas e despesas organizadas, sem complicação.",
-    },
-    card: {
-      title: "Um cartão. Tudo separado.",
-      subtitle: "Saiba de quem é cada compra e acompanhe os repasses.",
-    },
-    recurring: {
-      title: "Cadastre uma vez. Acompanhe sempre.",
-      subtitle:
-        "Suas receitas e contas mensais entram automaticamente na previsão.",
-    },
-    simulator: {
-      title: "Simular compra",
-      subtitle: "Veja quanto sobraria nos próximos meses antes de decidir.",
-    },
-    attention: {
-      title: "O que precisa da minha atenção",
-      subtitle:
-        "Veja o que está em atraso ou vence nos próximos 7 dias e confira as compras sem responsável.",
-    },
-    settings: {
-      title: "Do seu jeito.",
-      subtitle: "Ajuste seu controle e cuide dos seus dados.",
-    },
+  const pageTitle =
+    page === "settings"
+      ? "Configurações e dados"
+      : navigation.find(({ id }) => id === page)!.label;
+  const subtitles: Partial<Record<Page, string>> = {
+    planning: "Veja os próximos vencimentos e quando seu saldo pode apertar.",
+    banks: "Confira os dados conectados e identifique quem fez cada compra.",
+    card: "Acompanhe as compras, os pagamentos e os repasses registrados no orçamento.",
+    simulator: "Veja quanto sobraria nos próximos meses antes de decidir.",
+    attention:
+      "Confira atrasos, vencimentos nos próximos 7 dias e compras sem responsável.",
   };
   useEffect(() => {
-    document.title = `${page === "settings" ? "Configurações" : navigation.find((item) => item.id === page)?.label} · Controle Renda`;
-  }, [page]);
+    document.title = `${pageTitle} · Controle Renda`;
+    if (focusPage.current) headingRef.current?.focus({ preventScroll: true });
+    focusPage.current = false;
+  }, [pageTitle]);
   const navigationContent = (
     <>
       <UnstyledButton
         className="brand"
-        aria-label="Controle Renda — início"
+        aria-label="Controle Renda — Visão Geral"
         onClick={() => navigate("overview")}
       >
         <span className="brand-icon">
@@ -663,7 +623,6 @@ export default function App({
           <span className="brand-dot">.</span>
         </span>
       </UnstyledButton>
-      <p className="nav-label">MEU CONTROLE</p>
       <nav aria-label="Navegação principal">
         {navigation
           .filter(({ id }) => id !== "banks" || (account && !demo))
@@ -692,17 +651,6 @@ export default function App({
           <Settings2 size={19} />
           Configurações e dados
         </UnstyledButton>
-        <div className="local-status">
-          <span className="status-dot" />
-          <span role="status">
-            {saving
-              ? "Salvando no servidor…"
-              : connected
-                ? "Seus dados no servidor"
-                : "Sem conexão com o servidor"}
-          </span>
-          <ShieldCheck size={14} />
-        </div>
       </div>
     </>
   );
@@ -730,59 +678,19 @@ export default function App({
       </Drawer>
       <div className="main-shell">
         <header className="topbar">
-          <div className="topbar-left">
-            <UnstyledButton
-              className="icon-button mobile-menu"
-              aria-label="Abrir menu"
-              aria-expanded={menu}
-              aria-controls="navigation-menu"
-              onClick={() => setMenu(!menu)}
-            >
-              <Menu size={22} />
-            </UnstyledButton>
-            <span className="breadcrumb">
-              <span className="breadcrumb-root">
-                Meu espaço<span>/</span>
-              </span>
-              <strong>
-                {page === "settings"
-                  ? "Configurações"
-                  : navigation.find((n) => n.id === page)?.label}
-              </strong>
+          <div className="local-status" data-offline={!connected || undefined}>
+            <span className="status-dot" />
+            <span role="status">
+              {saving
+                ? "Salvando no servidor…"
+                : connected
+                  ? "Conectado"
+                  : "Sem conexão com o servidor"}
             </span>
+            <ShieldCheck size={14} />
           </div>
           <div className="topbar-right">
-            <span className="today-date">
-              {new Intl.DateTimeFormat("pt-BR", {
-                day: "numeric",
-                month: "long",
-                timeZone: "UTC",
-              }).format(new Date(`${today}T12:00:00Z`))}
-            </span>
-            <UnstyledButton
-              className="icon-button"
-              title="Entenda as previsões"
-              aria-label="Entenda as previsões"
-              onClick={() =>
-                setDialog({
-                  type: "confirm",
-                  title: "Como calculamos sua previsão",
-                  description:
-                    "Partimos do saldo no início do controle, somamos as receitas e descontamos as despesas cadastradas até o mês escolhido. A fatura inteira sai do saldo; o repasse da sua mãe entra separadamente. Pendências anteriores continuam na previsão. O saldo disponível usa somente movimentações confirmadas até hoje. Novos gastos e rendas variáveis precisam ser cadastrados.",
-                  action: () => setDialog(null),
-                })
-              }
-            >
-              <CircleHelp size={19} />
-            </UnstyledButton>
             <ThemeToggle />
-            <UnstyledButton
-              className="profile-avatar"
-              aria-label="Minha conta"
-              onClick={() => navigate("settings")}
-            >
-              <UserRound size={18} />
-            </UnstyledButton>
           </div>
         </header>
         {demo && (
@@ -800,29 +708,24 @@ export default function App({
         <main id="main-content" className="main-content">
           <div className="page-heading">
             <div>
-              {page !== "overview" &&
-                page !== "planning" &&
-                page !== "banks" &&
-                page !== "simulator" &&
-                page !== "attention" && (
-                  <p className="eyebrow">SIMPLICIDADE QUE FAZ DIFERENÇA</p>
-                )}
-              <h1>{titles[page].title}</h1>
-              {titles[page].subtitle && (
-                <p className="page-subtitle">{titles[page].subtitle}</p>
+              <h1 ref={headingRef} tabIndex={-1}>
+                {pageTitle}
+              </h1>
+              {subtitles[page] && (
+                <p className="page-subtitle">{subtitles[page]}</p>
               )}
             </div>
-            {page !== "banks" &&
-              page !== "simulator" &&
-              page !== "attention" && (
-                <Button
-                  className="button primary add-button"
-                  onClick={() => setDialog({ type: "entry" })}
-                >
-                  <Plus size={18} />
-                  Novo lançamento
-                </Button>
-              )}
+            {(["overview", "entries", "card", "planning"] as Page[]).includes(
+              page,
+            ) && (
+              <Button
+                className="button primary add-button"
+                onClick={() => setDialog({ type: "entry" })}
+              >
+                <Plus size={18} />
+                Novo lançamento
+              </Button>
+            )}
           </div>
           {page === "planning" && (
             <DailyBalance
@@ -831,11 +734,15 @@ export default function App({
               onSimulate={() => navigate("simulator")}
             />
           )}
-          {(["planning", "entries", "card", "recurring"] as Page[]).includes(
+          {(["overview", "planning", "entries", "card"] as Page[]).includes(
             page,
           ) && (
             <div className="period-toolbar">
-              <div className="month-picker">
+              <div
+                className="month-picker"
+                role="group"
+                aria-label="Mês selecionado"
+              >
                 <UnstyledButton
                   className="icon-button"
                   aria-label="Mês anterior"
@@ -844,7 +751,7 @@ export default function App({
                 >
                   <ChevronLeft size={17} />
                 </UnstyledButton>
-                <span>{monthLabel(month)}</span>
+                <span aria-live="polite">{monthLabel(month)}</span>
                 <UnstyledButton
                   className="icon-button"
                   aria-label="Próximo mês"
@@ -855,7 +762,10 @@ export default function App({
                 </UnstyledButton>
               </div>
               <div className="period-right">
-                {month !== currentMonth && (
+                {month !==
+                  (currentMonth < state.settings.initialMonth
+                    ? state.settings.initialMonth
+                    : currentMonth) && (
                   <UnstyledButton
                     className="text-button small"
                     onClick={() =>
@@ -866,13 +776,9 @@ export default function App({
                       )
                     }
                   >
-                    Voltar para hoje
+                    Voltar ao mês atual
                   </UnstyledButton>
                 )}
-                <span className="soft-label">
-                  <span className="status-dot" />
-                  {demo ? "Exemplo interativo" : "Atualizado a cada lançamento"}
-                </span>
               </div>
             </div>
           )}
@@ -898,14 +804,20 @@ export default function App({
             />
           )}
           {page === "overview" && (
-            <Home
-              state={state}
+            <FinancialOverview
+              key={demo ? "demo" : (account?.user.id ?? "local")}
+              accountId={demo ? undefined : account?.user.id}
+              summary={summary}
+              month={month}
               today={today}
+              people={state.people}
               attentionCount={attention.total}
               onPlan={() => navigate("planning")}
               onAttention={() => navigate("attention")}
-              onSimulate={() => navigate("simulator")}
               onBalance={() => setDialog({ type: "balance" })}
+              onCard={() => navigate("card")}
+              onBanks={() => navigate("banks")}
+              onEntries={() => navigate("entries")}
               onDemo={
                 !state.entries.length && !loadError && !demo
                   ? startDemo
@@ -914,135 +826,58 @@ export default function App({
             />
           )}
           {page === "planning" && (
-            <>
-              <OverviewSummary
-                summary={summary}
-                month={month}
-                onBalance={() => setDialog({ type: "balance" })}
-                onEntries={() => navigate("entries")}
-              />
-              <section className="panel projection-panel plan-projection">
-                <div className="panel-heading">
-                  <div>
-                    <h2>Saldo acumulado nos próximos meses</h2>
-                    <p>Cada mês começa com o saldo final do anterior.</p>
-                  </div>
-                  <span className="chart-legend">
-                    <span />
-                    Saldo acumulado
-                  </span>
+            <section
+              className="panel projection-panel plan-projection"
+              aria-labelledby="monthly-projection-title"
+            >
+              <div className="panel-heading">
+                <div>
+                  <h2 id="monthly-projection-title">
+                    Saldo acumulado nos próximos meses
+                  </h2>
+                  <p>
+                    Previsão do saldo no fim de cada mês, a partir de{" "}
+                    {monthLabel(month)}.
+                  </p>
                 </div>
-                <ProjectionChart state={state} month={month} today={today} />
-                <div className="flow-summary">
-                  <div>
-                    <span className="flow-icon income">
-                      <ArrowDownLeft size={18} />
-                    </span>
-                    <div>
-                      <small>Receitas de {monthName}</small>
-                      <strong>{money(summary.income)}</strong>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="flow-icon expense">
-                      <ArrowUpRight size={18} />
-                    </span>
-                    <div>
-                      <small>Despesas de {monthName}</small>
-                      <strong>{money(summary.expenses)}</strong>
-                    </div>
-                  </div>
-                  <div className="flow-personal">
-                    <small>Gastos por sua conta</small>
-                    <strong>{money(summary.personalExpenses)}</strong>
-                  </div>
-                </div>
-                <p className="chart-footnote">
-                  Despesas incluem a fatura inteira. Gastos por sua conta
-                  incluem compras a identificar.
-                </p>
-              </section>
-            </>
+              </div>
+              <ProjectionList state={state} month={month} today={today} />
+            </section>
           )}
           {page === "banks" && account && !demo && (
-            <>
-              <Button variant="default" onClick={() => navigate("card")}>
-                Abrir cartão do orçamento
-              </Button>
-              <BankConnections
-                key={account.user.id}
-                accountId={account.user.id}
-                people={state.people}
-              />
-            </>
+            <BankConnections
+              key={account.user.id}
+              accountId={account.user.id}
+              people={state.people}
+            />
           )}
-          {(page === "entries" || page === "recurring" || page === "card") && (
+          {(page === "entries" || page === "card") && (
             <>
               {page === "card" && (
                 <>
-                  <div className="card-metrics">
-                    <section className="small-metric">
-                      <CreditCard size={20} />
-                      <span>Fatura completa</span>
-                      <strong>{money(bill.total)}</strong>
-                      <small>Falta pagar {money(bill.outstanding)}</small>
-                    </section>
-                    <section className="small-metric">
-                      <UserRound size={20} />
-                      <span>Sua parte identificada</span>
-                      <strong>{money(bill.me)}</strong>
-                      <small>Compras atribuídas a você</small>
-                    </section>
-                    <section
-                      className="small-metric"
-                      role="region"
-                      aria-label="Repasse da sua mãe"
-                    >
-                      <Heart size={20} />
+                  <section
+                    className="panel card-settlement"
+                    aria-labelledby="card-settlement-title"
+                  >
+                    <div>
+                      <h2 id="card-settlement-title">Pagamento da fatura</h2>
+                      <p>
+                        Vencimento em{" "}
+                        {shortDate(
+                          dateInMonth(month, state.settings.invoiceDay),
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <span>Falta pagar</span>
+                      <strong>{money(bill.outstanding)}</strong>
+                    </div>
+                    <div role="region" aria-label="Repasse da sua mãe">
                       <span>A receber da sua mãe</span>
                       <strong>{money(bill.toReceive)}</strong>
                       <small>Já recebido: {money(bill.received)}</small>
-                    </section>
-                    <section className="small-metric">
-                      <CircleHelp size={20} />
-                      <span>A identificar</span>
-                      <strong>{money(bill.unknown)}</strong>
-                      <small>
-                        {unknownCount}{" "}
-                        {unknownCount === 1
-                          ? "compra sem responsável"
-                          : "compras sem responsável"}
-                      </small>
-                    </section>
-                  </div>
-                  {bill.otherParts.length > 0 && (
-                    <section
-                      className="panel other-parts"
-                      aria-label="Compras de outras pessoas"
-                    >
-                      <h2>Outros responsáveis</h2>
-                      {bill.otherParts.map((part) => (
-                        <div className="share-row" key={part.owner}>
-                          <span>{part.name}</span>
-                          <strong>{money(part.amount)}</strong>
-                        </div>
-                      ))}
-                      <p className="field-note">
-                        Repasses previstos automaticamente são os da sua mãe.
-                        Para recebimentos de outras pessoas, cadastre uma
-                        receita e confirme quando o dinheiro entrar.
-                      </p>
-                    </section>
-                  )}
-                  <div className="card-action-bar">
-                    <p>
-                      <Clock3 size={16} />
-                      Vencimento:{" "}
-                      {shortDate(dateInMonth(month, state.settings.invoiceDay))}
-                      <span>·</span>Você paga a fatura e registra o repasse
-                      dela.
-                    </p>
-                    <div>
+                    </div>
+                    <div className="card-settlement-actions">
                       <Button
                         className="button secondary"
                         disabled={bill.toReceive <= 0}
@@ -1062,7 +897,7 @@ export default function App({
                         Registrar pagamento
                       </Button>
                     </div>
-                  </div>
+                  </section>
                   {(bill.credit > 0 || bill.received > bill.mother) && (
                     <div className="alert">
                       <TriangleAlert size={18} />
@@ -1076,24 +911,13 @@ export default function App({
                   )}
                 </>
               )}
-              {page === "recurring" && (
-                <div className="info-banner">
-                  <Repeat2 size={21} />
-                  <p>
-                    Os lançamentos abaixo se repetem todos os meses. Editar
-                    altera somente este mês; encerrar interrompe os próximos.
-                  </p>
-                </div>
-              )}
               <section className="panel">
                 <div className="panel-heading list-panel-heading">
                   <div>
                     <h2>
                       {page === "card"
                         ? "Compras da fatura"
-                        : page === "recurring"
-                          ? "Entradas e contas recorrentes"
-                          : "Todos os lançamentos"}
+                        : "Movimentações do orçamento"}
                     </h2>
                     <p>
                       {filteredRows.length}{" "}
@@ -1150,6 +974,15 @@ export default function App({
                       {label}
                     </UnstyledButton>
                   ))}
+                  {page === "entries" && (
+                    <UnstyledButton
+                      className={`filter-chip recurring-toggle ${recurringOnly ? "active" : ""}`}
+                      aria-pressed={recurringOnly}
+                      onClick={() => setRecurringOnly((current) => !current)}
+                    >
+                      Só recorrentes
+                    </UnstyledButton>
+                  )}
                 </div>
                 <TransactionFilters
                   value={listFilters}
@@ -1159,33 +992,38 @@ export default function App({
                     setTransactionFilters(defaultTransactionFilters);
                     setSearch("");
                     setFilter("all");
+                    setRecurringOnly(false);
                     searchRef.current?.focus();
                   }}
                 />
-                <p className="filtered-total">
-                  Total da lista:{" "}
-                  <strong>
-                    {money(
-                      filteredRows.reduce((sum, row) => sum + row.amount, 0),
-                    )}
-                  </strong>
-                </p>
+                {recurringOnly && (
+                  <p className="cr-filter-note">
+                    Editar altera a ocorrência do mês. Encerrar interrompe as
+                    próximas.
+                  </p>
+                )}
                 <TransactionsTable
                   people={state.people}
                   onAddPerson={(row) =>
                     setDialog({ type: "person", entry: row })
                   }
-                  paginationKey={JSON.stringify([month, listFilters])}
+                  paginationKey={JSON.stringify([
+                    month,
+                    listFilters,
+                    recurringOnly,
+                  ])}
                   items={filteredRows}
                   page={page}
+                  recurringOnly={recurringOnly}
                   search={search}
-                  filter={hasDetailedFilters ? "filtered" : filter}
+                  filter={
+                    hasDetailedFilters || recurringOnly ? "filtered" : filter
+                  }
                   onAssign={assign}
                   onTogglePaid={togglePaid}
                   onEdit={(row) => setDialog({ type: "entry", editing: row })}
                   onDelete={deleteRow}
                   onStop={stopRecurring}
-                  onCreate={() => setDialog({ type: "entry" })}
                 />
               </section>
               {page === "card" && (
@@ -1267,35 +1105,11 @@ export default function App({
           )}
           {page === "settings" && (
             <div className="settings-grid">
-              <UnstyledButton
-                className="settings-shortcut"
-                onClick={() => navigate("recurring")}
-                aria-label="Gerenciar recorrências"
-              >
-                <span className="settings-icon">
-                  <Repeat2 size={23} />
-                </span>
-                <span>
-                  <strong>Recorrências</strong>
-                  <small>Suas rendas e contas de todo mês</small>
-                </span>
-                <ArrowRight size={20} />
-              </UnstyledButton>
               <section className="panel settings-panel">
                 <span className="settings-icon">
                   <Settings2 size={24} />
                 </span>
-                <h2>Meu controle</h2>
-                <p>
-                  O ponto de partida para suas previsões. Para usar o valor que
-                  está no banco agora, informe o saldo de hoje.
-                </p>
-                <Button
-                  className="button secondary"
-                  onClick={() => setDialog({ type: "balance" })}
-                >
-                  Informar saldo de hoje
-                </Button>
+                <h2>Orçamento e cartão</h2>
                 <dl>
                   <div>
                     <dt>Mês inicial</dt>
@@ -1326,12 +1140,9 @@ export default function App({
                 <span className="settings-icon">
                   <ShieldCheck size={24} />
                 </span>
-                <h2>Seus dados, com você</h2>
+                <h2>Backup dos dados</h2>
                 <p>
-                  Seus dados ficam no banco do servidor e podem ser acessados em
-                  outros aparelhos com seu login. As alterações são atualizadas
-                  ao voltar à página ou a cada 30 segundos. Exporte uma cópia
-                  sempre que precisar.
+                  Exporte uma cópia do orçamento ou restaure um arquivo salvo.
                 </p>
                 <div className="backup-actions">
                   <Button
@@ -1378,21 +1189,6 @@ export default function App({
               {account && (
                 <AccountPanel user={account.user} onLogout={account.onLogout} />
               )}
-              {account && !demo && (
-                <UnstyledButton
-                  className="settings-shortcut"
-                  onClick={() => navigate("banks")}
-                >
-                  <span className="settings-icon">
-                    <Landmark size={23} />
-                  </span>
-                  <span>
-                    <strong>Bancos</strong>
-                    <small>Saldos, faturas e compras conectadas</small>
-                  </span>
-                  <ArrowRight size={20} />
-                </UnstyledButton>
-              )}
               <section className="panel settings-panel example-settings">
                 <span className="settings-icon">
                   <FlaskConical size={24} />
@@ -1413,16 +1209,6 @@ export default function App({
               </section>
             </div>
           )}
-          <footer className="page-footer">
-            <span>
-              <Leaf size={14} />
-              Uma relação mais leve com o seu dinheiro.
-            </span>
-            <span>
-              Controle Renda<span className="footer-dot">·</span>Feito para
-              simplificar
-            </span>
-          </footer>
         </main>
       </div>
       <MobileNav
@@ -1430,6 +1216,7 @@ export default function App({
         onNavigate={navigate}
         onAdd={() => setDialog({ type: "entry" })}
         menuOpen={menu}
+        onMenu={() => setMenu((open) => !open)}
         showBanks={!!account && !demo}
       />
       <input
@@ -1571,7 +1358,7 @@ export default function App({
     </div>
   );
 }
-function ProjectionChart({
+function ProjectionList({
   state,
   month,
   today,
@@ -1581,57 +1368,19 @@ function ProjectionChart({
   today: string;
 }) {
   const values = Array.from({ length: 6 }, (_, i) => {
-    const m = addMonths(month, i);
-    return { month: m, value: summarize(state, m, today).closing };
+    const period = addMonths(month, i);
+    return { month: period, value: summarize(state, period, today).closing };
   });
-  const max = Math.max(...values.map((v) => v.value), 10000),
-    min = Math.min(...values.map((v) => v.value), 0),
-    range = max - min;
   return (
-    <div
-      className="projection-chart"
-      role="img"
-      aria-label={`Saldo projetado: ${values.map((v) => `${monthLabel(v.month)}: ${money(v.value)}`).join("; ")}`}
-    >
-      <div className="chart-axis">
-        <span>{money(max).replace(",00", "")}</span>
-        <span>{money(Math.round((max + min) / 2)).replace(",00", "")}</span>
-        <span>{money(min).replace(",00", "")}</span>
-      </div>
-      <div className="chart-plot">
-        <div className="chart-gridline line-top" />
-        <div className="chart-gridline line-middle" />
-        <div className="chart-gridline line-bottom" />
-        {min < 0 && (
-          <div
-            className="chart-zero"
-            style={{ bottom: `calc(28px + (100% - 28px) * ${-min / range})` }}
-          />
-        )}
-        {values.map(({ month: m, value }, i) => (
-          <div className="chart-column" key={m}>
-            <div className="bar-track">
-              <div
-                className={`chart-bar ${i === 0 ? "current" : ""} ${value < 0 ? "bar-negative" : ""}`}
-                style={{
-                  height: `${Math.max((Math.abs(value) / range) * 100, 0.6)}%`,
-                  bottom: `${((value < 0 ? value - min : -min) / range) * 100}%`,
-                }}
-              >
-                <span>{money(value)}</span>
-              </div>
-            </div>
-            <span className={`chart-month ${i === 0 ? "selected" : ""}`}>
-              {new Intl.DateTimeFormat("pt-BR", {
-                month: "short",
-                timeZone: "UTC",
-              })
-                .format(new Date(`${m}-15T12:00:00Z`))
-                .replace(".", "")}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <dl className="fo-parts monthly-projection" aria-label="Previsão por mês">
+      {values.map(({ month, value }) => (
+        <div key={month}>
+          <dt>
+            <time dateTime={month}>{monthLabel(month)}</time>
+          </dt>
+          <dd className={value < 0 ? "negative" : undefined}>{money(value)}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

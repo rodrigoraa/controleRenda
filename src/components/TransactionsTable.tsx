@@ -17,7 +17,6 @@ import {
   Pencil,
   Trash2,
   Leaf,
-  ArrowRight,
 } from "lucide-react";
 import type { Entry, Occurrence, Person } from "../lib/types";
 import { OwnerSelect } from "./PersonControls";
@@ -27,6 +26,7 @@ type Props = {
   items: Occurrence[];
   compact?: boolean;
   page: string;
+  recurringOnly?: boolean;
   search: string;
   filter: string;
   paginationKey?: string;
@@ -35,7 +35,6 @@ type Props = {
   onEdit: (row: Occurrence) => void;
   onDelete: (row: Occurrence) => void;
   onStop: (row: Occurrence) => void;
-  onCreate: () => void;
   people?: Person[];
   onAddPerson?: (row: Occurrence) => void;
 };
@@ -43,6 +42,7 @@ export function TransactionsTable({
   items,
   compact = false,
   page,
+  recurringOnly = false,
   search,
   filter,
   paginationKey,
@@ -51,7 +51,6 @@ export function TransactionsTable({
   onEdit,
   onDelete,
   onStop,
-  onCreate,
   people,
   onAddPerson,
 }: Props) {
@@ -85,7 +84,7 @@ export function TransactionsTable({
   return (
     <div
       className={`cr-transactions ${compact ? "cr-transactions-compact" : ""}`}
-      data-recurring={page === "recurring" || undefined}
+      data-recurring={recurringOnly || undefined}
     >
       <Table
         className="cr-transactions-table"
@@ -236,7 +235,7 @@ export function TransactionsTable({
                       </ActionIcon>
                     </Tooltip>
                   )}
-                  {page === "recurring" && (
+                  {recurringOnly && (
                     <Button
                       className="cr-stop-button"
                       variant="subtle"
@@ -301,23 +300,13 @@ export function TransactionsTable({
           <h3>
             {search || filter !== "all"
               ? "Nenhum resultado por aqui"
-              : "Tudo começa com um lançamento"}
+              : "Nenhum lançamento neste mês"}
           </h3>
           <p>
             {search || filter !== "all"
               ? "Tente outro termo ou altere o filtro."
-              : "Adicione receitas e despesas para acompanhar seu dinheiro."}
+              : "Use o botão de novo lançamento para registrar uma receita ou despesa."}
           </p>
-          {!search && filter === "all" && (
-            <Button
-              variant="light"
-              onClick={onCreate}
-              rightSection={<ArrowRight size={16} />}
-              type="button"
-            >
-              Adicionar lançamento
-            </Button>
-          )}
         </div>
       )}
     </div>

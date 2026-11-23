@@ -44,7 +44,6 @@ it("informa saldo de hoje e inicia renda apenas no próximo mês, inclusive apó
   await user.type(balance, "380,03");
   await user.click(screen.getByRole("button", { name: "Salvar saldo atual" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Ver próximos dias" }));
   expect(
     within(
       screen.getByRole("region", { name: "Saldo disponível hoje" }),
@@ -91,7 +90,6 @@ it("informa saldo de hoje e inicia renda apenas no próximo mês, inclusive apó
       }}
     />,
   );
-  await user.click(screen.getByRole("button", { name: "Ver próximos dias" }));
   expect(
     within(
       screen.getByRole("region", { name: "Saldo disponível hoje" }),

@@ -8,18 +8,20 @@ import {
   Ellipsis,
 } from "lucide-react";
 import "../ui/lists.css";
-type Page = "overview" | "entries" | "card" | "banks" | "settings";
+type Page = "overview" | "entries" | "card" | "banks";
 export function MobileNav({
   current,
   onNavigate,
   onAdd,
   menuOpen,
+  onMenu,
   showBanks = false,
 }: {
   current: string;
   onNavigate: (page: Page) => void;
   onAdd: () => void;
   menuOpen: boolean;
+  onMenu: () => void;
   showBanks?: boolean;
 }) {
   return (
@@ -29,13 +31,13 @@ export function MobileNav({
     >
       <UnstyledButton
         type="button"
-        aria-label="Ir para visão geral"
+        aria-label="Ir para Visão Geral"
         aria-current={current === "overview" ? "page" : undefined}
         className={current === "overview" ? "active" : ""}
         onClick={() => onNavigate("overview")}
       >
         <LayoutDashboard size={22} />
-        <span>Início</span>
+        <span>Visão geral</span>
       </UnstyledButton>
       <UnstyledButton
         type="button"
@@ -83,12 +85,22 @@ export function MobileNav({
       )}
       <UnstyledButton
         type="button"
-        aria-label="Abrir mais opções"
+        aria-label="Abrir menu"
+        aria-expanded={menuOpen}
+        aria-controls="navigation-menu"
         aria-current={
-          ["settings", "recurring"].includes(current) ? "page" : undefined
+          [
+            "settings",
+            "attention",
+            "planning",
+            "simulator",
+            ...(showBanks ? ["card"] : []),
+          ].includes(current)
+            ? "page"
+            : undefined
         }
-        className={["settings", "recurring"].includes(current) ? "active" : ""}
-        onClick={() => onNavigate("settings")}
+        className={menuOpen ? "active" : ""}
+        onClick={onMenu}
       >
         <Ellipsis size={25} />
         <span>Mais</span>

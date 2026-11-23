@@ -20,7 +20,6 @@ it("não grava localmente nem anuncia sucesso se o servidor recusar o salvamento
   };
   render(<App today="2026-11-06" persistence={persistence} />);
   const user = userEvent.setup();
-  await user.click(screen.getByRole("button", { name: "Ver próximos dias" }));
   await user.click(screen.getByRole("button", { name: "Novo lançamento" }));
   await user.click(screen.getByRole("button", { name: "Receita" }));
   await user.type(screen.getByLabelText("Descrição"), "Salário");
@@ -33,7 +32,7 @@ it("não grava localmente nem anuncia sucesso se o servidor recusar o salvamento
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   expect(
     within(
-      screen.getByRole("region", { name: "Saldo previsto no fim do mês" }),
+      screen.getByRole("region", { name: "Previsão do próximo mês" }),
     ).getByText("R$ 0,00"),
   ).toBeInTheDocument();
 });

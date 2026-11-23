@@ -54,15 +54,6 @@ export function DailyBalance({
           </strong>
           <small>{dateLabel(plan.lowest.date)}</small>
         </div>
-        <div>
-          <span>
-            {start === today
-              ? "Margem para gastar hoje"
-              : "Margem no início do orçamento"}
-          </span>
-          <strong>{money(Math.max(0, plan.lowest.balance))}</strong>
-          <small>Pelas movimentações cadastradas</small>
-        </div>
       </div>
       {plan.lowest.balance < 0 && (
         <p className="cash-warning">
@@ -157,10 +148,10 @@ export function AttentionPreview({
     >
       <ListTodo size={22} aria-hidden="true" />
       <div>
-        <h2 id="attention-preview-title">O que precisa da minha atenção</h2>
+        <h2 id="attention-preview-title">Pendências</h2>
         <p>
           {total
-            ? `${total} ${total === 1 ? "pendência para conferir" : "pendências para conferir"}`
+            ? `${total} ${total === 1 ? "item para conferir" : "itens para conferir"}`
             : "Nenhuma pendência agora"}
         </p>
       </div>

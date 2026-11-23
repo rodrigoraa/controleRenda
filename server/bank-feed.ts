@@ -81,16 +81,24 @@ const transactionSchema = z.object({
   currencyCode: z.string(),
   creditCardMetadata: z
     .object({
+      billId: z.string().min(1).nullish(),
       feeType: z.string().nullish(),
       otherCreditsType: z.string().nullish(),
     })
     .nullish(),
 });
 const billSchema = z.object({
+  id: z.string().min(1).nullish(),
   dueDate: z.string(),
   totalAmount: z.number(),
   totalAmountCurrencyCode: z.string(),
 });
+
+function billKey(accountId: string, billId: string) {
+  return createHash("sha256")
+    .update(`bill:${accountId}:${billId}`)
+    .digest("hex");
+}
 const pageSchema = z.object({
   results: z.array(z.unknown()),
   next: z.string().nullish(),
@@ -182,6 +190,9 @@ async function readTransactions(
             purchaseKey: createHash("sha256")
               .update(`${accountId}:${value.id}`)
               .digest("hex"),
+            ...(value.creditCardMetadata?.billId && {
+              billKey: billKey(accountId, value.creditCardMetadata.billId),
+            }),
           }),
       });
     }
@@ -195,11 +206,21 @@ async function readTransactions(
     cursors.add(cursor);
     after = cursor;
   }
+  const rows = [...transactions.values()];
+  const days: NonNullable<BankAccount["cashFlow"]>["days"] = {};
+  if (kind === "BANK" && !limited) {
+    for (const transaction of rows) {
+      if (transaction.status === "PENDING") continue;
+      const day = (days[transaction.date] ??= { inflows: 0, outflows: 0 });
+      if (transaction.direction === "CREDIT") day.inflows += transaction.amount;
+      else day.outflows += transaction.amount;
+    }
+  }
   return {
-    rows: [...transactions.values()]
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 25),
+    rows: rows.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 25),
     limited,
+    cashFlow:
+      kind === "BANK" && !limited ? { from: dateFrom, days } : undefined,
   };
 }
 
@@ -220,7 +241,15 @@ async function readBills(
       const due = parsed.data.dueDate.slice(0, 10);
       const amount = amountInCents(parsed.data.totalAmount);
       return z.iso.date().safeParse(due).success && amount !== null
-        ? [{ due, amount }]
+        ? [
+            {
+              due,
+              amount,
+              ...(parsed.data.id && {
+                billKey: billKey(accountId, parsed.data.id),
+              }),
+            },
+          ]
         : [];
     })
     .sort((a, b) => b.due.localeCompare(a.due))
@@ -276,7 +305,7 @@ async function readBank(
         : [];
     });
     if (!accounts.length) return { ...base, status: "empty" };
-    const from = addDays(now.toISOString().slice(0, 10), -29);
+    const from = addDays(now.toISOString().slice(0, 10), -31);
     const data = await Promise.all(
       accounts.slice(0, 6).map(async (account): Promise<BankAccount> => {
         const [tx, bills] = await Promise.allSettled([
@@ -295,6 +324,7 @@ async function readBank(
           balance:
             account.type === "BANK" ? amountInCents(account.balance) : null,
           transactions: tx.status === "fulfilled" ? tx.value.rows : [],
+          cashFlow: tx.status === "fulfilled" ? tx.value.cashFlow : undefined,
           bills: bills.status === "fulfilled" ? bills.value : [],
           limited:
             tx.status === "rejected" ||

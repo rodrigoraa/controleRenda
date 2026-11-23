@@ -33,7 +33,6 @@ function table(items: Occurrence[], search = "") {
       onEdit={vi.fn()}
       onDelete={vi.fn()}
       onStop={vi.fn()}
-      onCreate={vi.fn()}
     />
   );
 }

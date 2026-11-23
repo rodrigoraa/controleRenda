@@ -19,10 +19,15 @@ export type BankAccount = {
     direction: "CREDIT" | "DEBIT";
     status: "PENDING" | "POSTED" | null;
     purchaseKey?: string;
+    billKey?: string;
     owner?: BankPurchaseOwner;
   }[];
-  bills: { due: string; amount: number }[];
+  bills: { due: string; amount: number; billKey?: string }[];
   limited: boolean;
+  cashFlow?: {
+    from: string;
+    days: Record<string, { inflows: number; outflows: number }>;
+  };
 };
 
 export type BankResult = {

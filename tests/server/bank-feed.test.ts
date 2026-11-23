@@ -82,6 +82,7 @@ it("lê as faturas e movimentações do cartão, sem expor IDs ou dados extras d
                 status: "POSTED",
                 currencyCode: "BRL",
                 paymentData: { private: true },
+                creditCardMetadata: { billId: "private-statement-id" },
               },
               {
                 id: "fee-1",
@@ -108,6 +109,7 @@ it("lê as faturas e movimentações do cartão, sem expor IDs ou dados extras d
           return Response.json({
             results: [
               {
+                id: "private-statement-id",
                 dueDate: "2026-12-10",
                 totalAmount: 100.25,
                 totalAmountCurrencyCode: "BRL",
@@ -156,8 +158,11 @@ it("lê as faturas e movimentações do cartão, sem expor IDs ou dados extras d
       .slice(1)
       .map(({ purchaseKey }) => purchaseKey),
   ).toEqual([undefined, undefined]);
+  const card = own.banks[0].accounts[0];
+  expect(card.bills[0].billKey).toMatch(/^[a-f0-9]{64}$/);
+  expect(card.transactions[0].billKey).toBe(card.bills[0].billKey);
   expect(JSON.stringify(own)).not.toMatch(
-    /dado-privado|paymentData|chave-transitoria|0945e07c/,
+    /dado-privado|paymentData|chave-transitoria|0945e07c|private-statement-id/,
   );
 });
 
@@ -191,4 +196,79 @@ it("não lê contas de um conector diferente de MeuPluggy e descarta a cópia ap
     banks: [{ status: "unavailable", accounts: [] }],
   });
   expect(request).toHaveBeenCalledTimes(5);
+});
+
+it("calcula entradas e saídas das contas antes do corte do extrato visível", async () => {
+  const now = new Date().toISOString();
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    switch (new URL(String(input)).pathname) {
+      case "/auth":
+        return Response.json({ apiKey: "chave" });
+      case `/items/${itemId}`:
+        return Response.json({
+          id: itemId,
+          status: "UPDATED",
+          connector: { name: "MeuPluggy" },
+          lastUpdatedAt: now,
+        });
+      case "/accounts":
+        return Response.json({
+          results: [
+            {
+              id: accountId,
+              itemId,
+              type: "BANK",
+              currencyCode: "BRL",
+              balance: 100,
+            },
+          ],
+        });
+      case "/v2/transactions":
+        return Response.json({
+          results: [
+            ...Array.from({ length: 27 }, (_, n) => ({
+              id: `debito-${n}`,
+              amount: -1,
+              type: "DEBIT",
+              status: "POSTED",
+              date: now,
+              description: "Débito",
+              currencyCode: "BRL",
+            })),
+            {
+              id: "credito",
+              amount: 40,
+              type: "CREDIT",
+              date: now,
+              description: "Entrada",
+              currencyCode: "BRL",
+            },
+            {
+              id: "pendente",
+              amount: 80,
+              type: "CREDIT",
+              status: "PENDING",
+              date: now,
+              description: "Pendente",
+              currencyCode: "BRL",
+            },
+          ],
+        });
+      default:
+        throw new Error("Rota inesperada");
+    }
+  });
+  const feed = createBankFeed({
+    ...config,
+    items: [{ id: itemId, institution: "nubank", kind: "ALL" }],
+  });
+  await feed.refresh();
+  const view = feed.forUser(config.ownerEmail);
+  if (!view.enabled) throw new Error("Consulta do titular esperada");
+  const account = view.banks[0].accounts[0];
+  expect(account.transactions).toHaveLength(25);
+  expect(account.cashFlow?.days[now.slice(0, 10)]).toEqual({
+    inflows: 4000,
+    outflows: 2700,
+  });
 });

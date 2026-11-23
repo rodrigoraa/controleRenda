@@ -52,7 +52,7 @@ components:
 
 ## Overview
 
-Aplicação pessoal em português brasileiro para Rodrigo acompanhar rendas, gastos e cartão compartilhado principalmente no celular. A referência é um caderno de contas bem organizado: os valores e suas relações conduzem a página. A assinatura é uma faixa de composição do mês — saldo trazido, entradas, saídas e saldo final — com sinais e rótulos explícitos. O saldo confirmado é visualmente diferente das previsões.
+Aplicação pessoal em português brasileiro para Rodrigo acompanhar rendas, gastos e cartão compartilhado principalmente no celular. A referência é um caderno de contas bem organizado: os valores e suas relações conduzem a página. A tela inicial organiza o saldo de hoje, a previsão e a movimentação do mês em blocos com rótulos explícitos. O saldo confirmado é visualmente diferente das previsões.
 
 Registro de produto, não página de publicidade. Preservar o verde floresta já associado ao sistema; substituir a densidade de textos pequenos por hierarquia e respiro. Não usar hero promocional, ilustrações financeiras decorativas ou um mosaico de indicadores sem explicação.
 
@@ -70,7 +70,7 @@ DM Sans Variable para texto e controles; Manrope Variable para títulos e valore
 
 ## Layout
 
-Sidebar desktop de 232px, conteúdo com largura máxima de 78rem. Abaixo de 900px, navegação inferior de cinco ações e atalhos; o documento é dono da rolagem. Conteúdo com 16px de respiro no telefone, 32px no desktop. No Início, a margem estimada aparece primeiro, seguida de até três movimentações e do resumo de pendências. Planejar reúne o saldo confirmado, a linha do tempo e as previsões por mês. Bancos mostra informações do provedor e a data de atualização em uma área própria. Listas do orçamento têm paginação local de 20 itens e uma representação semântica única que se reorganiza em cartões no telefone.
+Sidebar desktop de 232px, conteúdo com largura máxima de 78rem. Abaixo de 900px, navegação inferior de cinco ações e atalhos; o documento é dono da rolagem. Conteúdo com 16px de respiro no telefone, 32px no desktop. Na Visão Geral, o saldo de hoje recebe destaque e os rótulos explicam a origem dos dados. Planejar reúne a linha do tempo e as previsões por mês. Bancos mostra informações do provedor e a data de atualização em uma área própria. Listas do orçamento têm paginação local de 20 itens e uma representação semântica única que se reorganiza em cartões no telefone.
 
 ## Elevation & Depth
 

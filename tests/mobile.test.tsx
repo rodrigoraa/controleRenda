@@ -29,7 +29,7 @@ it("abre o cartão pela navegação inferior e mantém a indicação da página 
     within(nav).getByRole("button", { name: "Ver cartão compartilhado" }),
   );
   expect(
-    screen.getByRole("heading", { name: "Um cartão. Tudo separado." }),
+    screen.getByRole("heading", { name: "Cartão compartilhado" }),
   ).toBeInTheDocument();
   expect(
     within(nav).getByRole("button", { name: "Ver cartão compartilhado" }),
@@ -63,19 +63,20 @@ it("inclui uma compra da mãe pelo botão central de inclusão rápida", async (
   );
   expect(screen.queryByText("Lançamento salvo.")).not.toBeInTheDocument();
 });
-it("alcança as recorrências pelo menu Mais do celular", async () => {
+it("abre as telas adicionais a partir de Mais, e as recorrências em Lançamentos", async () => {
   const { user } = setup();
-  await user.click(
-    within(
-      screen.getByRole("navigation", { name: "Navegação do celular" }),
-    ).getByRole("button", { name: "Abrir mais opções" }),
-  );
-  await user.click(
-    screen.getByRole("button", { name: "Gerenciar recorrências" }),
-  );
+  const nav = screen.getByRole("navigation", { name: "Navegação do celular" });
+  const more = within(nav).getByRole("button", { name: "Abrir menu" });
+  await user.click(more);
+  const menu = await screen.findByRole("dialog", { name: "Menu" });
+  await user.click(within(menu).getByRole("button", { name: "Planejar" }));
   expect(
-    screen.getByRole("heading", {
-      name: "Cadastre uma vez. Acompanhe sempre.",
-    }),
+    screen.getByRole("heading", { name: "Planejar", level: 1 }),
   ).toBeInTheDocument();
+  await user.click(
+    within(nav).getByRole("button", { name: "Ver lançamentos" }),
+  );
+  const frequency = screen.getByRole("button", { name: "Só recorrentes" });
+  await user.click(frequency);
+  expect(frequency).toHaveAttribute("aria-pressed", "true");
 });

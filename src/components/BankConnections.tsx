@@ -151,23 +151,6 @@ function AccountReadout({
         {account.balance !== null && <strong>{money(account.balance)}</strong>}
         {unidentified > 0 && <small>{unidentified} a identificar</small>}
       </summary>
-      {account.kind === "credit" && (
-        <div>
-          <h4>Faturas informadas</h4>
-          {account.bills.length ? (
-            <ul>
-              {account.bills.map((bill, index) => (
-                <li key={`${bill.due}-${index}`}>
-                  <span>Vencimento em {dateLabel(bill.due)}</span>
-                  <strong>{money(bill.amount)}</strong>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Nenhuma fatura disponível nesta consulta.</p>
-          )}
-        </div>
-      )}
       <div>
         <h4>Movimentações recentes</h4>
         {account.transactions.length ? (

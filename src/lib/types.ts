@@ -61,6 +61,8 @@ export type Summary = {
   starting: number;
   inflows: number;
   outflows: number;
+  confirmedInflows: number;
+  confirmedOutflows: number;
   monthlyChange: number;
   nextMonthlyChange: number;
   closing: number;

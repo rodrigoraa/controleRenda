@@ -448,7 +448,7 @@
   }
 
   .cr-mobile-nav.mobile-nav > button > span:last-child {
-    font-size: clamp(10px, 2.7vw, 12px);
+    font-size: clamp(9px, 2.65vw, 12px);
     font-weight: 500;
     line-height: 1.4;
   }

@@ -4,11 +4,11 @@ A interface prioriza o uso diário no telefone e mantém a navegação pelo comp
 
 Na barra inferior:
 
-- **Início:** saldo da conta hoje, saldo previsto no fim de cada mês e composição das previsões.
+- **Visão Geral:** saldo de hoje, entradas, saídas, faturas e previsão para o mês seguinte.
 - **Lançamentos:** busca, filtros e cartões com os detalhes de cada movimentação.
 - **Novo:** botão central sempre acessível para registrar receita ou despesa. Ao abrir pela página do cartão, o formulário já seleciona cartão de crédito.
-- **Cartão:** compras por responsável, repasses da mãe e pagamentos da fatura.
-- **Mais:** configurações, conta, backups, modo de exemplo e acesso às recorrências.
+- **Bancos:** saldos e extratos das contas conectadas, com atribuição das compras. Sem conta de acesso, a barra mostra **Cartão** neste espaço.
+- **Mais:** Planejar, Cartão compartilhado, Pendências, Simular compra e Configurações e dados.
 
 Nas listas, use o seletor de responsável para identificar uma compra. Toque em Pendente para confirmar uma movimentação, no lápis para editar e na lixeira para solicitar exclusão.
 
@@ -33,7 +33,7 @@ Os controles podem ser combinados no mês selecionado:
 - **Ordenar por:** maior valor, menor valor, data mais antiga ou mais recente.
 - **Valor mínimo/máximo:** intervalo inclusivo, em reais. Você pode preencher apenas um dos limites.
 
-A busca e os filtros rápidos de receitas/despesas também podem ser combinados com esses controles. **Total da lista** soma todos os resultados filtrados, incluindo as outras páginas; **Limpar filtros** restaura a lista completa. O orçamento e as previsões consideram todos os lançamentos cadastrados.
+A busca e os filtros rápidos de receitas/despesas também podem ser combinados com esses controles. Use **Só recorrentes** para ver receitas e contas mensais. Neste filtro, **Encerrar** cancela as ocorrências futuras. **Limpar filtros** restaura a lista completa. O orçamento e as previsões consideram todos os lançamentos cadastrados.
 
 As listas mostram até **20 lançamentos por página**. Use as setas no fim da lista para avançar; o intervalo informa sua posição. Alterar a busca, os filtros ou o mês reinicia a página.
 
@@ -41,7 +41,7 @@ As listas mostram até **20 lançamentos por página**. Use as setas no fim da l
 
 No formulário de compra no cartão, toque em **Adicionar pessoa**, informe o nome e toque em **Cadastrar pessoa**. O nome fica selecionado no formulário, sem perder os dados já preenchidos. Na lista, a opção **Adicionar pessoa…** no seletor cadastra e atribui a pessoa à compra. Em compras parceladas, a atribuição vale para todas as parcelas.
 
-As pessoas ficam salvas no seu orçamento e aparecem nos seletores e filtros dos outros aparelhos. O cadastro identifica quem comprou; ele não cria uma conta de acesso. A parte de cada pessoa aparece separada no cartão. Os repasses automáticos continuam sendo os da sua mãe; valores a receber de outras pessoas podem ser cadastrados como receita e confirmados quando entrarem.
+As pessoas ficam salvas no seu orçamento e aparecem nos seletores e filtros dos outros aparelhos. O cadastro identifica quem comprou; ele não cria uma conta de acesso. A parte de cada pessoa aparece na Visão Geral. Os repasses automáticos continuam sendo os da sua mãe; valores a receber de outras pessoas podem ser cadastrados como receita e confirmados quando entrarem.
 
 Para corrigir uma data, toque no lápis, altere **Data prevista** ou **Data na fatura** e salve. Ao mudar o mês, o sistema abre o mês de destino. Se o lançamento já foi confirmado, você também pode corrigir a **Data do recebimento** ou **Data do pagamento**, que informa quando o dinheiro realmente entrou ou saiu.
 
@@ -49,16 +49,18 @@ A correção afeta somente o lançamento escolhido: as demais parcelas e as pró
 
 ## Entender o resumo
 
-O primeiro cartão, **Saldo na conta hoje**, mostra o dinheiro confirmado e oferece **Informar saldo de hoje**. Os dois cartões seguintes são identificados como **Previsão** e mostram o fim do mês selecionado e do próximo mês.
+Em **Visão Geral**, o seletor muda o mês de Entradas e saídas, das faturas e da previsão. **Saldo disponível hoje** fica na data atual. Mostra o último saldo informado pelos bancos quando disponível e o saldo confirmado do orçamento nos demais casos.
 
-Em **O caminho do seu dinheiro**, acompanhe a conta: saldo trazido + entradas − saídas = saldo final previsto. O resultado de cada mês aparece separado do saldo acumulado. Uma previsão só conhece os gastos e rendas cadastrados.
+Quando o extrato cobre o período necessário, **Entrou** e **Saiu** usam as contas conectadas e incluem transferências entre elas. Quando a cobertura fica incompleta, a tela usa as movimentações confirmadas no orçamento. As faturas conectadas mostram os valores do banco e o responsável pelas compras recentes vinculadas. Use **Bancos** para identificar essas compras.
+
+Entre em **Planejar** para ver as datas dos próximos pagamentos e o saldo previsto no fim de cada mês. A previsão considera as entradas e despesas cadastradas no orçamento.
 
 ## Saldo de hoje e renda a partir do próximo mês
 
 1. Confirme os recebimentos e pagamentos que já aconteceram. No cartão, registre o pagamento da fatura e os repasses recebidos.
-2. Em **Início → Informar saldo de hoje**, digite o valor que aparece no seu banco. O sistema ajusta o ponto de partida considerando os movimentos confirmados; ele não registra esse valor como receita. Pendências continuam nas previsões.
+2. Em **Visão Geral → Informar saldo de hoje** (ou **Ajustar saldo do orçamento** com bancos conectados), digite o valor que aparece no seu banco. O sistema ajusta o ponto de partida considerando os movimentos confirmados; ele não registra esse valor como receita. Pendências continuam nas previsões.
 3. Para cadastrar salário, bolsa ou outro pagamento mensal, toque em **Novo → Receita**, preencha o valor de um mês e selecione **Todo mês**. Ajuste o dia do recebimento e toque em **A partir do próximo mês**. Confira a primeira data mostrada e salve.
-4. Veja o saldo previsto no fim de cada mês. O **resultado só desse mês** mostra quanto as entradas e saídas daquele mês acrescentam ou retiram. O **saldo final** inclui o dinheiro trazido dos meses anteriores. As rendas futuras só entram no saldo de hoje quando você confirma que recebeu.
+4. Veja o saldo previsto no fim de cada mês. O saldo no fim do mês inclui o dinheiro trazido dos meses anteriores. As rendas futuras só entram no saldo de hoje quando você confirma que recebeu.
 
 Exemplo: R$ 380,03 na conta hoje, fatura de novembro de R$ 425,56 e renda de R$ 2.221 a partir de dezembro. Sem outras movimentações, novembro termina em −R$ 45,53; dezembro tem resultado de +R$ 2.221 e termina com saldo de R$ 2.175,47.
 
