@@ -282,6 +282,44 @@
 /* =========================================================================
    2. FILTRO DE MÊS E PREVISÃO MÊS A MÊS
    ========================================================================= */
+.fo-month-toolbar-slot {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--cr-z-header);
+  grid-column: 1 / -1;
+  padding: 7px clamp(8px, 2vw, 16px);
+  border: 1px solid var(--cr-border);
+  border-radius: var(--cr-rounded, 0.75rem);
+  background: var(--cr-surface);
+}
+
+.fo-month-toolbar-slot .period-toolbar {
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.fo-month-toolbar-slot .month-picker {
+  min-width: 0;
+}
+
+.fo-month-toolbar-slot .month-picker > span {
+  min-width: 0;
+  width: 146px;
+}
+
+.fo-month-toolbar-slot .period-right:empty {
+  display: none;
+}
+
+.fo-month-toolbar-slot .period-right .text-button {
+  min-height: 44px;
+}
+
+.financial-overview > :not(.fo-month-toolbar-slot) :focus {
+  scroll-margin-block-start: 72px;
+}
+
 .fo-month-strip-container {
   grid-column: 1 / -1;
   background: var(--cr-surface);

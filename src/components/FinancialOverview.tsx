@@ -428,10 +428,10 @@ export function FinancialOverview({
         </div>
       </section>
 
-      {/* =========================================================================
-          2. FILTRO DE MÊS E PREVISÃO MÊS A MÊS
-          Opções de meses para ver despesas e receitas de cada mês
-          ========================================================================= */}
+      {monthToolbar && (
+        <div className="fo-month-toolbar-slot">{monthToolbar}</div>
+      )}
+
       <section
         className="panel fo-month-strip-container"
         aria-labelledby="fo-month-strip-title"
@@ -440,19 +440,13 @@ export function FinancialOverview({
           <div>
             <h2 id="fo-month-strip-title" className="fo-strip-heading">
               <CalendarDays size={20} aria-hidden="true" />
-              Filtro de mês e previsão mês a mês
+              Previsão mês a mês
             </h2>
             <p>
               Navegue entre os meses e confira a projeção de receitas, despesas e sobra.
             </p>
           </div>
         </div>
-
-        {monthToolbar && (
-          <div className="fo-month-toolbar-slot">
-            {monthToolbar}
-          </div>
-        )}
 
         {monthPreviews.length > 0 && (
           <div
